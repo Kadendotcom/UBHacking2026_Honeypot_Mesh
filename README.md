@@ -15,7 +15,7 @@ archetypes, and show it all on a live dashboard.
 | `ml/` | Session clustering *(not started)* | Person 3 |
 | `frontend/` | Vite + React + Tailwind + shadcn dashboard | Person 4 |
 | `gen-keys.sh` | Generates the SSH host keys the honeypot needs | — |
-| `PLAN.md` | Backend build order | — |
+| `frontend/API_CONTRACT.md` | The JSON shape every endpoint returns | — |
 
 ---
 
