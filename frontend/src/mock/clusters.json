@@ -1,0 +1,124 @@
+[
+  {
+    "id": "c1",
+    "name": "Mirai Nebula",
+    "label": "IoT botnet dropper",
+    "summary": "Logs in with default credentials, checks the CPU architecture, then tries to download and run a botnet binary from a rotating set of hosts.",
+    "mitre": [
+      {
+        "id": "T1110.001",
+        "name": "Brute Force: Password Guessing"
+      },
+      {
+        "id": "T1105",
+        "name": "Ingress Tool Transfer"
+      },
+      {
+        "id": "T1059.004",
+        "name": "Unix Shell"
+      }
+    ],
+    "session_count": 6,
+    "first_seen": "2026-11-07T08:43:00Z",
+    "last_seen": "2026-11-07T17:40:00Z",
+    "ioc_ids": [
+      "i13",
+      "i14",
+      "i15",
+      "i16",
+      "i17",
+      "i18",
+      "i20",
+      "i24",
+      "i25",
+      "i26",
+      "i27",
+      "i29"
+    ]
+  },
+  {
+    "id": "c2",
+    "name": "The Miner's Belt",
+    "label": "Cryptominer install",
+    "summary": "Kills competing miners, downloads a Monero miner, and adds a cron job so it survives reboots.",
+    "mitre": [
+      {
+        "id": "T1496",
+        "name": "Resource Hijacking"
+      },
+      {
+        "id": "T1053.003",
+        "name": "Scheduled Task: Cron"
+      },
+      {
+        "id": "T1105",
+        "name": "Ingress Tool Transfer"
+      }
+    ],
+    "session_count": 4,
+    "first_seen": "2026-11-07T12:01:00Z",
+    "last_seen": "2026-11-07T16:59:00Z",
+    "ioc_ids": [
+      "i5",
+      "i6",
+      "i7",
+      "i8",
+      "i9",
+      "i10",
+      "i11",
+      "i19",
+      "i22"
+    ]
+  },
+  {
+    "id": "c3",
+    "name": "Keysnatcher",
+    "label": "Credential theft",
+    "summary": "Hunts for cloud keys, SSH keys and .env files, then sends what it finds to an external server.",
+    "mitre": [
+      {
+        "id": "T1552.001",
+        "name": "Credentials In Files"
+      },
+      {
+        "id": "T1041",
+        "name": "Exfiltration Over C2 Channel"
+      }
+    ],
+    "session_count": 3,
+    "first_seen": "2026-11-07T10:15:00Z",
+    "last_seen": "2026-11-07T16:23:00Z",
+    "ioc_ids": [
+      "i3",
+      "i28",
+      "i30",
+      "i31"
+    ]
+  },
+  {
+    "id": "c4",
+    "name": "Recon Drift",
+    "label": "Reconnaissance",
+    "summary": "Looks around and leaves: system info, users, network config. Often the first visit before a later attack.",
+    "mitre": [
+      {
+        "id": "T1082",
+        "name": "System Information Discovery"
+      },
+      {
+        "id": "T1016",
+        "name": "System Network Configuration Discovery"
+      }
+    ],
+    "session_count": 5,
+    "first_seen": "2026-11-07T11:34:00Z",
+    "last_seen": "2026-11-07T16:33:00Z",
+    "ioc_ids": [
+      "i1",
+      "i2",
+      "i13",
+      "i21",
+      "i23"
+    ]
+  }
+]
