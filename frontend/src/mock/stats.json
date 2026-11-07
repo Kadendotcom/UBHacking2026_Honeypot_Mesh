@@ -1,0 +1,26 @@
+{
+  "active_sessions": 2,
+  "total_sessions": 20,
+  "total_engaged_s": 5646,
+  "avg_engaged_s": 282,
+  "baseline_avg_s": 14,
+  "cluster_count": 4,
+  "ioc_count": 31,
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Kepler",
+      "persona": "Ubuntu 22.04 database server"
+    },
+    {
+      "id": "n2",
+      "name": "Vega",
+      "persona": "WordPress site on Debian 12"
+    },
+    {
+      "id": "n3",
+      "name": "Io",
+      "persona": "Router admin panel (BusyBox)"
+    }
+  ]
+}

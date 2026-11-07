@@ -1,0 +1,447 @@
+[
+  {
+    "id": "i1",
+    "type": "ip",
+    "value": "198.51.100.17",
+    "first_seen": "2026-11-07T16:27:00Z",
+    "last_seen": "2026-11-07T16:27:00Z",
+    "session_ids": [
+      "s005"
+    ],
+    "cluster_ids": [
+      "c4"
+    ],
+    "confidence": 0.87
+  },
+  {
+    "id": "i2",
+    "type": "ip",
+    "value": "192.0.2.142",
+    "first_seen": "2026-11-07T14:47:00Z",
+    "last_seen": "2026-11-07T14:47:00Z",
+    "session_ids": [
+      "s010"
+    ],
+    "cluster_ids": [
+      "c4"
+    ],
+    "confidence": 0.9
+  },
+  {
+    "id": "i3",
+    "type": "ip",
+    "value": "198.51.100.65",
+    "first_seen": "2026-11-07T10:15:00Z",
+    "last_seen": "2026-11-07T10:15:00Z",
+    "session_ids": [
+      "s017"
+    ],
+    "cluster_ids": [
+      "c3"
+    ],
+    "confidence": 0.96
+  },
+  {
+    "id": "i4",
+    "type": "ip",
+    "value": "198.51.100.44",
+    "first_seen": "2026-11-07T15:59:00Z",
+    "last_seen": "2026-11-07T15:59:00Z",
+    "session_ids": [
+      "s007"
+    ],
+    "cluster_ids": [],
+    "confidence": 0.87
+  },
+  {
+    "id": "i5",
+    "type": "domain",
+    "value": "pool-loader.example",
+    "first_seen": "2026-11-07T12:01:00Z",
+    "last_seen": "2026-11-07T14:40:00Z",
+    "session_ids": [
+      "s011",
+      "s013"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.8
+  },
+  {
+    "id": "i6",
+    "type": "url",
+    "value": "http://pool-loader.example/m.sh",
+    "first_seen": "2026-11-07T12:01:00Z",
+    "last_seen": "2026-11-07T14:40:00Z",
+    "session_ids": [
+      "s011",
+      "s013"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.82
+  },
+  {
+    "id": "i7",
+    "type": "file_path",
+    "value": "/root/.cfg/run",
+    "first_seen": "2026-11-07T12:01:00Z",
+    "last_seen": "2026-11-07T16:59:00Z",
+    "session_ids": [
+      "s003",
+      "s011",
+      "s012",
+      "s013"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.9
+  },
+  {
+    "id": "i8",
+    "type": "ip",
+    "value": "203.0.113.206",
+    "first_seen": "2026-11-07T12:01:00Z",
+    "last_seen": "2026-11-07T12:01:00Z",
+    "session_ids": [
+      "s013"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.73
+  },
+  {
+    "id": "i9",
+    "type": "ip",
+    "value": "198.51.100.200",
+    "first_seen": "2026-11-07T14:35:00Z",
+    "last_seen": "2026-11-07T16:59:00Z",
+    "session_ids": [
+      "s003",
+      "s012"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.8
+  },
+  {
+    "id": "i10",
+    "type": "url",
+    "value": "http://198.51.100.200/m.sh",
+    "first_seen": "2026-11-07T14:35:00Z",
+    "last_seen": "2026-11-07T16:59:00Z",
+    "session_ids": [
+      "s003",
+      "s012"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.83
+  },
+  {
+    "id": "i11",
+    "type": "ip",
+    "value": "198.51.100.35",
+    "first_seen": "2026-11-07T16:59:00Z",
+    "last_seen": "2026-11-07T16:59:00Z",
+    "session_ids": [
+      "s003"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.82
+  },
+  {
+    "id": "i12",
+    "type": "ip",
+    "value": "192.0.2.170",
+    "first_seen": "2026-11-07T14:59:00Z",
+    "last_seen": "2026-11-07T14:59:00Z",
+    "session_ids": [
+      "s009"
+    ],
+    "cluster_ids": [],
+    "confidence": 0.83
+  },
+  {
+    "id": "i13",
+    "type": "ip",
+    "value": "203.0.113.66",
+    "first_seen": "2026-11-07T09:12:00Z",
+    "last_seen": "2026-11-07T17:40:00Z",
+    "session_ids": [
+      "s001",
+      "s014",
+      "s016",
+      "s019"
+    ],
+    "cluster_ids": [
+      "c1",
+      "c4"
+    ],
+    "confidence": 0.72
+  },
+  {
+    "id": "i14",
+    "type": "url",
+    "value": "http://203.0.113.66/bins/x86",
+    "first_seen": "2026-11-07T09:12:00Z",
+    "last_seen": "2026-11-07T17:40:00Z",
+    "session_ids": [
+      "s001",
+      "s016",
+      "s019"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.76
+  },
+  {
+    "id": "i15",
+    "type": "ip",
+    "value": "198.51.100.232",
+    "first_seen": "2026-11-07T09:12:00Z",
+    "last_seen": "2026-11-07T09:12:00Z",
+    "session_ids": [
+      "s019"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.75
+  },
+  {
+    "id": "i16",
+    "type": "domain",
+    "value": "cdn-update.invalid",
+    "first_seen": "2026-11-07T08:43:00Z",
+    "last_seen": "2026-11-07T09:45:00Z",
+    "session_ids": [
+      "s018",
+      "s020"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.93
+  },
+  {
+    "id": "i17",
+    "type": "url",
+    "value": "http://cdn-update.invalid/bins/x86",
+    "first_seen": "2026-11-07T08:43:00Z",
+    "last_seen": "2026-11-07T09:45:00Z",
+    "session_ids": [
+      "s018",
+      "s020"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.92
+  },
+  {
+    "id": "i18",
+    "type": "ip",
+    "value": "203.0.113.78",
+    "first_seen": "2026-11-07T08:43:00Z",
+    "last_seen": "2026-11-07T08:43:00Z",
+    "session_ids": [
+      "s020"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.77
+  },
+  {
+    "id": "i19",
+    "type": "ip",
+    "value": "198.51.100.189",
+    "first_seen": "2026-11-07T14:35:00Z",
+    "last_seen": "2026-11-07T14:35:00Z",
+    "session_ids": [
+      "s012"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.74
+  },
+  {
+    "id": "i20",
+    "type": "ip",
+    "value": "198.51.100.234",
+    "first_seen": "2026-11-07T09:45:00Z",
+    "last_seen": "2026-11-07T09:45:00Z",
+    "session_ids": [
+      "s018"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.94
+  },
+  {
+    "id": "i21",
+    "type": "ip",
+    "value": "192.0.2.45",
+    "first_seen": "2026-11-07T16:33:00Z",
+    "last_seen": "2026-11-07T16:33:00Z",
+    "session_ids": [
+      "s004"
+    ],
+    "cluster_ids": [
+      "c4"
+    ],
+    "confidence": 0.9
+  },
+  {
+    "id": "i22",
+    "type": "ip",
+    "value": "192.0.2.66",
+    "first_seen": "2026-11-07T14:40:00Z",
+    "last_seen": "2026-11-07T14:40:00Z",
+    "session_ids": [
+      "s011"
+    ],
+    "cluster_ids": [
+      "c2"
+    ],
+    "confidence": 0.94
+  },
+  {
+    "id": "i23",
+    "type": "ip",
+    "value": "192.0.2.136",
+    "first_seen": "2026-11-07T15:46:00Z",
+    "last_seen": "2026-11-07T15:46:00Z",
+    "session_ids": [
+      "s008"
+    ],
+    "cluster_ids": [
+      "c4"
+    ],
+    "confidence": 0.93
+  },
+  {
+    "id": "i24",
+    "type": "domain",
+    "value": "dl.botnet-c2.example",
+    "first_seen": "2026-11-07T17:16:00Z",
+    "last_seen": "2026-11-07T17:16:00Z",
+    "session_ids": [
+      "s002"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.91
+  },
+  {
+    "id": "i25",
+    "type": "url",
+    "value": "http://dl.botnet-c2.example/bins/x86",
+    "first_seen": "2026-11-07T17:16:00Z",
+    "last_seen": "2026-11-07T17:16:00Z",
+    "session_ids": [
+      "s002"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.96
+  },
+  {
+    "id": "i26",
+    "type": "ip",
+    "value": "203.0.113.117",
+    "first_seen": "2026-11-07T17:16:00Z",
+    "last_seen": "2026-11-07T17:16:00Z",
+    "session_ids": [
+      "s002"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.97
+  },
+  {
+    "id": "i27",
+    "type": "ip",
+    "value": "198.51.100.33",
+    "first_seen": "2026-11-07T10:21:00Z",
+    "last_seen": "2026-11-07T10:21:00Z",
+    "session_ids": [
+      "s016"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.76
+  },
+  {
+    "id": "i28",
+    "type": "ip",
+    "value": "198.51.100.43",
+    "first_seen": "2026-11-07T16:23:00Z",
+    "last_seen": "2026-11-07T16:23:00Z",
+    "session_ids": [
+      "s006"
+    ],
+    "cluster_ids": [
+      "c3"
+    ],
+    "confidence": 0.81
+  },
+  {
+    "id": "i29",
+    "type": "ip",
+    "value": "203.0.113.119",
+    "first_seen": "2026-11-07T17:40:00Z",
+    "last_seen": "2026-11-07T17:40:00Z",
+    "session_ids": [
+      "s001"
+    ],
+    "cluster_ids": [
+      "c1"
+    ],
+    "confidence": 0.73
+  },
+  {
+    "id": "i30",
+    "type": "ip",
+    "value": "192.0.2.150",
+    "first_seen": "2026-11-07T10:47:00Z",
+    "last_seen": "2026-11-07T10:47:00Z",
+    "session_ids": [
+      "s015"
+    ],
+    "cluster_ids": [
+      "c3"
+    ],
+    "confidence": 0.95
+  },
+  {
+    "id": "i31",
+    "type": "ip",
+    "value": "198.51.100.105",
+    "first_seen": "2026-11-07T10:47:00Z",
+    "last_seen": "2026-11-07T10:47:00Z",
+    "session_ids": [
+      "s015"
+    ],
+    "cluster_ids": [
+      "c3"
+    ],
+    "confidence": 0.74
+  }
+]
