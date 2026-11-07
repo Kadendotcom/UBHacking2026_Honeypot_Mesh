@@ -74,6 +74,29 @@ class BaseServer(paramiko.ServerInterface):
             "uname -s": "Linux",
             "uname -a": "Linux ubuntu 5.15.0 x86_64 GNU/Linux",
         }
+        responses.update({
+            "hostname": "ubuntu",
+            "id": "uid=0(root) gid=0(root) groups=0(root)",
+            "uname": "Linux",
+            "ls -a": ". .. .bashrc Documents Downloads secrets.txt",
+            "ls /": "bin boot dev etc home lib opt proc root tmp usr var",
+            "cat /etc/hostname": "ubuntu",
+            "cat /etc/os-release": (
+                'PRETTY_NAME="Ubuntu 22.04.5 LTS"\n'
+                'NAME="Ubuntu"\n'
+                'VERSION_ID="22.04"'
+            ),
+            "cat secrets.txt": "DB_USER=demo\nDB_PASSWORD=FAKE_PASSWORD",
+            "ps aux": (
+                "USER PID %CPU %MEM COMMAND\n"
+                "root 1 0.0 0.1 /sbin/init\n"
+                "root 782 0.0 0.2 /usr/sbin/sshd"
+            ),
+            "systemctl status ssh": (
+                "● ssh.service - OpenBSD Secure Shell server\n"
+                "     Active: active (running)"
+            ),
+        })
 
         buffer = ""
 
