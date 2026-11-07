@@ -1,0 +1,45 @@
+# SSH host keys — regenerate locally with ./gen-keys.sh
+keys/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Capture data — contains real attacker IPs and live payload URLs
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+data/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+/venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Node — frontend/ has its own .gitignore too
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ML artifacts
+*.pkl
+*.joblib
+models/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*~
+*.swp
