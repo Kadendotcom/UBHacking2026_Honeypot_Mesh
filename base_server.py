@@ -4,9 +4,11 @@
 import logging
 import socket
 import threading
+import uuid
 from model_inference import generate_response
 import paramiko
 from fake_session import FakeSession
+import httpx
 
 # SSH host keys
 HOSTKEY_RSA = paramiko.RSAKey(filename="keys/server_rsa")
@@ -19,6 +21,29 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+COLLECTOR_URL = "http://127.0.0.1:8000/events"
+NODE_ID = "honeypot-1"
+
+
+def send_event(session_id, src_ip, event_type, **fields):
+    payload = {
+        "session_id": session_id,
+        "src_ip": src_ip,
+        "type": event_type,
+        "protocol": "ssh",
+        "node_id": NODE_ID,
+        **fields,
+    }
+
+    try:
+        response = httpx.post(
+            COLLECTOR_URL,
+            json=payload,
+            timeout=2.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPError:
+        logger.exception("Failed to send %s event to backend", event_type)
 class BaseServer(paramiko.ServerInterface):
 
     def __init__(self):
@@ -56,7 +81,12 @@ class BaseServer(paramiko.ServerInterface):
 
     def check_auth_password(self, username, password):
         if username == "user" and password == "password":
+            send_event(
+                self.session_id, self.src_ip, "login",
+                username=username,
+            )
             return paramiko.AUTH_SUCCESSFUL
+
 
         return paramiko.AUTH_FAILED
 
@@ -162,6 +192,11 @@ class BaseServer(paramiko.ServerInterface):
                         if not handled:
                             output = self.execute_fake_command(command, session)
 
+                        send_event(
+                            self.session_id, self.src_ip, "command",
+                            command=command, response=output,
+                        )
+
                         # Normalize line endings
                         output = output.replace("\r\n", "\n")
                         output = output.replace("\r", "\n")
@@ -246,6 +281,11 @@ class BaseServer(paramiko.ServerInterface):
 
                         output = self.execute_fake_command(command)
 
+                        send_event(
+                            self.session_id, self.src_ip, "command",
+                            command=command, response=output,
+                        )
+
                         channel.send(
                             (output + "\r\n").encode("utf-8")
                         )
@@ -285,6 +325,8 @@ class BaseServer(paramiko.ServerInterface):
 
         try:
             client, addr = sock.accept()
+            self.session_id = str(uuid.uuid4())
+            self.src_ip = addr[0]
             print(f"DEBUG: Connection from {addr}", flush=True)
 
             transport = paramiko.Transport(client)
@@ -314,6 +356,7 @@ class BaseServer(paramiko.ServerInterface):
 
             finally:
                 transport.close()
+                send_event(self.session_id, self.src_ip, "logout")
 
         finally:
             sock.close()

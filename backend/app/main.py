@@ -26,5 +26,8 @@ def post_event(ev: EventIn):
     store.insert_event(ev)
     return {"ok": True}
 
-
+@app.get("/sessions/{session_id}/events")
+def get_session_events(session_id: str):
+    rows = store.list_session_events(session_id)
+    return [dict(row) for row in rows]
     

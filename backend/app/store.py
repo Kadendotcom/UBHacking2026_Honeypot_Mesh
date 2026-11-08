@@ -19,3 +19,15 @@ def insert_event(ev:EventIn):
 def list_sessions():
     db.query("SELECT * FROM sessions ORDER BY started_at DESC")
     return db.query("SELECT * FROM sessions ORDER BY started_at DESC")
+
+def list_session_events(session_id: str):
+    return db.query(
+        """
+        SELECT id, session_id, ts, type, command, response
+        FROM events
+        WHERE session_id = ?
+        ORDER BY id ASC
+        """,
+        (session_id,),
+    )
+
