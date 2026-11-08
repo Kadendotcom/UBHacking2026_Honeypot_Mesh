@@ -179,6 +179,44 @@ Connect to the honeypot:
 ssh user@127.0.0.1 -p 2222        # password: password
 ```
 
+### Command classification logs
+
+Install the honeypot dependencies with `pip install -r requirements.txt` and
+place the trained model at `models/attack_classifier.joblib`. Use the same
+scikit-learn version used to train the artifact. The classifier loads once,
+on the first command.
+
+Each nonempty shell command (including `exit`) appends a JSON object to
+`logs/commands.jsonl`. Set `COMMAND_LOG_PATH` to override the destination.
+Records include UTC `ts`, `session_id`, `src_ip`, `node_id`, `protocol`, `type`,
+`command`, `response`, integer `severity`, and numeric `confidence`.
+If classification fails, severity and confidence are null and
+`classification_error` is `classification_failed`; the shell continues.
+Local logging is independent of backend delivery. Prediction fields are kept
+in JSONL; the collector's event schema is unchanged. Logs are gitignored.
+
+Sessions are flagged for review after one severity >=3 prediction with
+confidence >=0.70, or three severity >=2 predictions among the last five
+commands (regardless of confidence). A severity >=4 prediction with confidence
+>=0.70 raises priority to `high`. Failed predictions count toward the window
+but do not count as suspicious. Flags persist until the session ends and
+priority never decreases; SSH interactions continue after flagging.
+Each command record includes `session_flagged`, `session_newly_flagged`,
+`session_priority` (`review`, `high`, or null), and `session_flag_reason`.
+These are provisional thresholds pending validation against labeled sessions.
+
+When a session reaches `high` priority, its triggering command and every
+subsequent submitted command are also appended to
+`logs/high_severity_sessions.jsonl` (override with `MONITOR_LOG_PATH`).
+Records include the authenticated SSH `username`, source IP (`src_ip`),
+`session_id`, command input, response, timestamp, and prediction/flag fields.
+Monitoring continues even if later predictions fail or have low severity.
+Flagging never disconnects the client; a client can still exit or disconnect
+normally. Review-priority sessions remain in the main command log only.
+
+Run policy and logging tests with:
+`python3 -m unittest test_session_risk test_command_logging -v`.
+
 ---
 
 ## Rules for this repo

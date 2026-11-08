@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+set -e
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+mkdir -p keys
+
 ssh-keygen -q -N "" -t rsa -b 2048 -f keys/server_rsa -C "server test RSA 2048 key"
 ssh-keygen -q -N "" -t rsa -b 2048 -f keys/client_rsa -C "client test RSA 2048 key"
 

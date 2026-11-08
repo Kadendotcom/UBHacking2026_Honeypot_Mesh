@@ -5,6 +5,11 @@ import logging
 import socket
 import threading
 import uuid
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from attack_classifier import classify_command
+from session_risk import SessionRisk
 from model_inference import generate_response
 import paramiko
 from fake_session import FakeSession
@@ -24,6 +29,56 @@ logger = logging.getLogger(__name__)
 
 COLLECTOR_URL = "http://127.0.0.1:8000/events"
 NODE_ID = "n1"
+COMMAND_LOG_PATH = Path(os.environ.get(
+    "COMMAND_LOG_PATH", str(Path(__file__).resolve().parent / "logs" / "commands.jsonl")
+))
+command_log_lock = threading.Lock()
+MONITOR_LOG_PATH = Path(os.environ.get(
+    "MONITOR_LOG_PATH",
+    str(Path(__file__).resolve().parent / "logs" / "high_severity_sessions.jsonl"),
+))
+
+
+def log_command(session_id, src_ip, command, response, risk=None, username=None):
+    """Persist a prediction locally, independently of collector availability."""
+    record = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "session_id": session_id,
+        "src_ip": src_ip,
+        "username": username,
+        "node_id": NODE_ID,
+        "type": "command",
+        "protocol": "ssh",
+        "command": command,
+        "response": response,
+        "severity": None,
+        "confidence": None,
+    }
+    try:
+        prediction = classify_command(command)
+        record["severity"] = prediction["severity"]
+        record["confidence"] = prediction["confidence"]
+    except Exception:
+        logger.exception("Command classification failed")
+        record["classification_error"] = "classification_failed"
+
+    if risk is not None:
+        record.update(risk.update(record["severity"], record["confidence"]))
+        if record["session_newly_flagged"]:
+            logger.warning("Session %s flagged: %s", session_id,
+                           record["session_flag_reason"])
+
+    paths = [COMMAND_LOG_PATH]
+    if record.get("session_priority") == "high":
+        paths.append(MONITOR_LOG_PATH)
+    for path in paths:
+        try:
+            with command_log_lock:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(record, ensure_ascii=True) + "\n")
+        except OSError:
+            logger.exception("Failed to write JSONL log: %s", path)
 
 
 event_queue = queue.Queue(maxsize=1000)
@@ -78,6 +133,7 @@ threading.Thread(
 class BaseServer(paramiko.ServerInterface):
 
     def __init__(self):
+        self.username = None
         self.event = threading.Event()
         self.responses = {
             "whoami": "root",
@@ -140,6 +196,7 @@ class BaseServer(paramiko.ServerInterface):
         return "password"
 
     def check_auth_password(self, username, password):
+        self.username = username
         send_event(
             self.session_id,
             self.src_ip,
@@ -210,6 +267,7 @@ class BaseServer(paramiko.ServerInterface):
 
     def handle_shell(self, channel):
         session = FakeSession()
+        risk = SessionRisk()
         print("DEBUG: Fake shell started", flush=True)
 
         channel.sendall(b"Welcome to Ubuntu 22.04 LTS\r\n")
@@ -240,6 +298,8 @@ class BaseServer(paramiko.ServerInterface):
                     channel.sendall(b"\r\n")
 
                     if command == "exit":
+                        log_command(self.session_id, self.src_ip, command, "logout",
+                                    risk, self.username)
                         channel.sendall(b"logout\r\n")
                         return
 
@@ -251,6 +311,8 @@ class BaseServer(paramiko.ServerInterface):
                         if not handled:
                             output = self.execute_fake_command(command, session)
 
+                        log_command(self.session_id, self.src_ip, command, output,
+                                    risk, self.username)
                         send_event(
                             self.session_id, self.src_ip, "command",
                             command=command, response=output,

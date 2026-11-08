@@ -15,6 +15,7 @@ keys/
 *.sqlite3
 data/
 *.log
+logs/
 
 # Python
 __pycache__/
