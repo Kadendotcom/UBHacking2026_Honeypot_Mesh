@@ -88,27 +88,36 @@ class BaseServer(paramiko.ServerInterface):
             transport.add_server_key(host_key)
 
     # Fake Linux terminal
-    def execute_fake_command(self, command):
+
+    def execute_fake_command(self, command, session=None):
         command = command.strip()
 
         if not command:
             return ""
 
-        # Your existing dictionary of hardcoded responses
+        # First, check hardcoded responses
         if command in self.responses:
+            print(f"HARDCODED: {command}", flush=True)
             return self.responses[command]
 
+        # Otherwise, use your fine-tuned MLX model
         try:
+            print(f"MLX COMMAND: {command}", flush=True)
+
             context = session.snapshot() if session else None
-            return generate_response(command, context)
+
+            output = generate_response(
+                command,
+                session_context=context
+            )
+
+            print(f"MLX OUTPUT: {output!r}", flush=True)
+
+            return str(output) if output is not None else ""
 
         except Exception:
             logger.exception("MLX inference failed")
             return "bash: temporary system error"
-        print(
-            f"EXECUTING ONCE: {command!r}",
-            flush=True
-        )
 
     def handle_shell(self, channel):
         session = FakeSession()
