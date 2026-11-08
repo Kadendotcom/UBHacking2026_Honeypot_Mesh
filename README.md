@@ -253,6 +253,8 @@ git commit -m "Untrack <path>"
   CPU and needs no ROCm.
 - `base_server.py` only accepts `user`/`password`. A honeypot should accept any
   credentials and log what was tried.
-- `base_server.py` handles one connection at a time — needs a thread per
-  connection before two people can connect at once.
+- `base_server.py` accepts concurrent connections with a worker per connection.
+  Each has independent authentication, fake filesystem, and risk state. Shared
+  MLX response generation is serialized; other sessions can continue using
+  simulated filesystem commands while generation runs.
 - No root `requirements.txt` yet; `pip install paramiko` by hand for now.

@@ -33,6 +33,7 @@ COMMAND_LOG_PATH = Path(os.environ.get(
     "COMMAND_LOG_PATH", str(Path(__file__).resolve().parent / "logs" / "commands.jsonl")
 ))
 command_log_lock = threading.Lock()
+inference_lock = threading.Lock()
 MONITOR_LOG_PATH = Path(os.environ.get(
     "MONITOR_LOG_PATH",
     str(Path(__file__).resolve().parent / "logs" / "high_severity_sessions.jsonl"),
@@ -252,10 +253,11 @@ class BaseServer(paramiko.ServerInterface):
 
             context = session.snapshot() if session else None
 
-            output = generate_response(
-                command,
-                session_context=context
-            )
+            with inference_lock:
+                output = generate_response(
+                    command,
+                    session_context=context
+                )
 
             print(f"MLX OUTPUT: {output!r}", flush=True)
 
@@ -358,42 +360,47 @@ class BaseServer(paramiko.ServerInterface):
         print("DEBUG: Listening on 127.0.0.1:2222", flush=True)
 
         try:
-            client, addr = sock.accept()
-            self.session_id = str(uuid.uuid4())
-            self.src_ip = addr[0]
-            print(f"DEBUG: Connection from {addr}", flush=True)
-
-            transport = paramiko.Transport(client)
-
-            try:
-                self._load_host_keys(transport)
-
-                transport.start_server(server=self)
-                print("DEBUG: SSH server started", flush=True)
-
-                channel = transport.accept(20)
-
-                if channel is None:
-                    raise ValueError("No SSH channel opened")
-
-                print("DEBUG: Channel accepted", flush=True)
-
-                if not self.event.wait(30):
-                    raise ValueError("No shell request received")
-
-                print("DEBUG: Starting fake Linux shell", flush=True)
-
+            while True:
+                client, addr = sock.accept()
+                # Each connection owns its authentication, event, and shell state.
+                server = BaseServer()
                 try:
-                    self.handle_shell(channel)
-                finally:
-                    channel.close()
-
-            finally:
-                transport.close()
-                send_event(self.session_id, self.src_ip, "logout")
-
+                    threading.Thread(
+                        target=server.handle_client,
+                        args=(client, addr),
+                        name=f"ssh-{addr[0]}-{addr[1]}",
+                        daemon=True,
+                    ).start()
+                except Exception:
+                    client.close()
+                    logger.exception("Failed to start SSH connection worker")
         finally:
             sock.close()
+
+    def handle_client(self, client, addr):
+        self.session_id = str(uuid.uuid4())
+        self.src_ip = addr[0]
+        transport = None
+        try:
+            transport = paramiko.Transport(client)
+            self._load_host_keys(transport)
+            transport.start_server(server=self)
+            channel = transport.accept(20)
+            if channel is None:
+                raise ValueError("No SSH channel opened")
+            try:
+                if not self.event.wait(30):
+                    raise ValueError("No shell request received")
+                self.handle_shell(channel)
+            finally:
+                channel.close()
+        except Exception:
+            logger.exception("SSH session %s failed", self.session_id)
+        finally:
+            if transport is not None:
+                transport.close()
+            client.close()
+            send_event(self.session_id, self.src_ip, "logout")
 
 def clean_terminal_output(output):
     output = output.strip()

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import types
+import threading
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -110,6 +111,57 @@ class CommandLoggingTests(unittest.TestCase):
             self.server.log_command("s", "192.0.2.1", "ls", "",
                                     self.server.SessionRisk(), "visitor")
         self.assertTrue(self.server.MONITOR_LOG_PATH.is_file())
+
+    def test_two_connections_run_concurrently_with_separate_identity(self):
+        servers = [self.server.BaseServer(), self.server.BaseServer()]
+        barrier = threading.Barrier(2)
+        transports = [MagicMock(), MagicMock()]
+        clients = [MagicMock(), MagicMock()]
+        seen = []
+
+        def shell(server, username):
+            server.username = username
+            barrier.wait(timeout=3)
+            seen.append((server.session_id, server.src_ip, server.username))
+
+        for i, server in enumerate(servers):
+            server.event.set()
+            server.handle_shell = lambda channel, s=server, u=f"user{i}": shell(s, u)
+        self.server.paramiko.Transport = MagicMock(side_effect=transports)
+        with patch.object(self.server, "send_event") as send_event:
+            workers = [threading.Thread(target=s.handle_client,
+                       args=(clients[i], (f"192.0.2.{i + 1}", 1000 + i)))
+                       for i, s in enumerate(servers)]
+            for worker in workers:
+                worker.start()
+            for worker in workers:
+                worker.join(timeout=5)
+            self.assertTrue(all(not w.is_alive() for w in workers))
+        self.assertEqual(len(seen), 2)
+        self.assertNotEqual(seen[0][0], seen[1][0])
+        self.assertEqual({(ip, user) for _, ip, user in seen},
+                         {("192.0.2.1", "user0"), ("192.0.2.2", "user1")})
+        self.assertEqual(send_event.call_count, 2)
+        for transport, client in zip(transports, clients):
+            transport.close.assert_called_once()
+            client.close.assert_called_once()
+
+    def test_listener_dispatches_each_connection_to_distinct_worker(self):
+        sock = MagicMock()
+        clients = [MagicMock(), MagicMock()]
+        sock.accept.side_effect = [
+            (clients[0], ("192.0.2.1", 1)),
+            (clients[1], ("192.0.2.2", 2)), KeyboardInterrupt,
+        ]
+        with patch.object(self.server.socket, "socket", return_value=sock), \
+                patch.object(self.server.threading, "Thread") as worker:
+            with self.assertRaises(KeyboardInterrupt):
+                self.server.BaseServer().listen()
+        self.assertEqual(worker.call_count, 2)
+        targets = [call.kwargs["target"].__self__ for call in worker.call_args_list]
+        self.assertIsNot(targets[0], targets[1])
+        self.assertEqual(worker.return_value.start.call_count, 2)
+        sock.close.assert_called_once()
 
 
 if __name__ == "__main__":
