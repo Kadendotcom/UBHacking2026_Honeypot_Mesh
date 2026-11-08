@@ -30,7 +30,7 @@ export default function Transmissions() {
     .filter((s) => s.src_ip.includes(search.trim()))
 
   return (
-    <Frame title="Transmissions" fill>
+    <Frame title="Transmissions" fill scrollInside>
       <div className="flex min-h-0 flex-1 flex-col">
         {error && <p className="mb-4 shrink-0 text-sm text-destructive">Lost signal: {error}</p>}
         <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3">

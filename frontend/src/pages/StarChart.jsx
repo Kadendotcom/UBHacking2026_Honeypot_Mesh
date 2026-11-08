@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { getClusters, getSessions } from '@/api'
 import { formatDuration } from '@/lib/format'
 import usePolling from '@/lib/usePolling'
-import { WIDTH, HEIGHT, makeScale, starRadius, constellationLines, centroid } from '@/lib/starchart'
+import { WIDTH, HEIGHT, makeScale, starRadius, constellationLines, centroid, timelineLayout } from '@/lib/starchart'
 import StarSymbol, { CATEGORIES } from '@/components/StarSymbol'
 import Frame from '@/components/Frame'
 import PageLoader from '@/components/PageLoader'
@@ -21,16 +21,33 @@ export default function StarChart() {
   if (!data) return <PageLoader />
 
   const { sessions, clusters } = data
-  const scale = makeScale(sessions)
   const categoryOf = (clusterId) => clusters.find((c) => c.id === clusterId)?.category ?? 'unknown'
 
-  // Every session with a position becomes a star with screen coordinates
+  // Use the ML's coordinates when it has supplied them. Until then, lay the sky out
+  // as a timeline: across = when the session started, up = its worst severity.
+  const usingMl = sessions.some((s) => s.position)
+  const timeline = usingMl ? null : timelineLayout(sessions)
+  const scale = usingMl ? makeScale(sessions) : null
   const stars = sessions
-    .filter((s) => s.position)
-    .map((s) => ({ ...s, ...scale(s.position), r: starRadius(s.duration_s) }))
+    .filter((s) => (usingMl ? s.position : true))
+    .map((s) => ({
+      ...s,
+      ...(usingMl ? scale(s.position) : timeline.place(s)),
+      r: starRadius(s.duration_s ?? 0),
+    }))
+  // Without ML clusters every star is "uncharted", so only dim them once clusters exist
+  const dimUnclustered = clusters.length > 0
 
   return (
-    <Frame title="Star Chart" fill>
+    <Frame
+      title="Star Chart"
+      caption={
+        usingMl || stars.length === 0
+          ? undefined
+          : 'Plotted by when each attacker arrived (across) and the most severe command they ran (up), until the ML maps them by behaviour.'
+      }
+      fill
+    >
       {error && <p className="mb-2 text-sm text-destructive">Lost signal: {error}</p>}
       {/* Take the leftover height; the chart scales to fit it without scrolling */}
       <div className="flex min-h-60 flex-1 items-center justify-center" style={{ containerType: 'size' }}>
@@ -47,6 +64,22 @@ export default function StarChart() {
             <line key={`h${i}`} x1={0} y1={(i + 1) * 91} x2={WIDTH} y2={(i + 1) * 91} stroke="var(--border)" strokeWidth={0.5} />
           ))}
 
+          {/* Timeline axes, only when there are no ML coordinates */}
+          {timeline && stars.length > 0 && (
+            <g className="font-mono text-[11px] uppercase tracking-widest">
+              {timeline.rows.map((row) => (
+                <text key={row.label} x={12} y={row.y + 4} className="fill-muted-foreground">
+                  {row.label}
+                </text>
+              ))}
+              {timeline.ticks.map((tick, i) => (
+                <text key={i} x={tick.x} y={HEIGHT - 16} textAnchor="middle" className="fill-muted-foreground">
+                  {tick.label}
+                </text>
+              ))}
+            </g>
+          )}
+
           {stars.length === 0 && (
             <text
               x={WIDTH / 2}
@@ -54,7 +87,7 @@ export default function StarChart() {
               textAnchor="middle"
               className="fill-muted-foreground font-mono text-sm"
             >
-              No sessions have chart coordinates yet.
+              No attackers sighted yet.
             </text>
           )}
 
@@ -96,7 +129,7 @@ export default function StarChart() {
                 y={s.y}
                 r={s.r}
                 active={s.status === 'active'}
-                faint={!s.cluster_id}
+                faint={dimUnclustered && !s.cluster_id}
               />
             </g>
           ))}

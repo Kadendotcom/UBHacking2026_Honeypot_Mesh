@@ -12,8 +12,11 @@ conn=sqlite3.connect(DB_PATH, check_same_thread=False)
 conn.row_factory = sqlite3.Row
 #Multi write 
 conn.execute("PRAGMA journal_mode=WAL")
-#Thread lock stops 2 writes from happening at the same time
-tLock=threading.Lock()
+# One connection is shared by every request thread, so reads and writes both take this lock.
+# Without it, parallel requests (the dashboard fires several at once) interleave on the
+# connection and a query can come back empty -> IndexError -> 500.
+# RLock so code already holding it (e.g. inside a write) can still call query().
+tLock=threading.RLock()
 
 def init_db():
     file_path = Path(__file__).parent / "schema.sql"
@@ -55,5 +58,6 @@ def init_db():
         conn.commit()
     
 def query(sql, params=()):
-    curs=conn.execute(sql,params)
-    return curs.fetchall()  
+    with tLock:
+        curs=conn.execute(sql,params)
+        return curs.fetchall()  
