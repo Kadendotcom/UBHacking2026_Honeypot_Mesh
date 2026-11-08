@@ -8,6 +8,7 @@ const CX = W / 2
 const CY = H / 2
 const HOLE_R = 44
 const TILT = 0.32 // how flat the orbits look (1 = circle, 0 = a line)
+const ORBIT_RADII = [90, 160, 230, 280]
 
 // Longer trapped → orbit closer to the hole ("pulled in").
 function orbitRadius(durationSeconds) {
@@ -76,7 +77,7 @@ export default function BlackHole({ sessions }) {
         </defs>
 
         {/* Orbit guides: thin solid lines */}
-        {[90, 160, 230, 280].map((r) => (
+        {ORBIT_RADII.map((r) => (
           <ellipse key={r} cx={CX} cy={CY} rx={r} ry={r * TILT} fill="none" stroke="#EDE4D0" strokeOpacity={0.12} />
         ))}
 
@@ -87,6 +88,17 @@ export default function BlackHole({ sessions }) {
 
         {/* 2. The horizon, engraved */}
         <Engraving />
+
+        {/* Near-side orbit guides pass in front of the horizon. */}
+        {ORBIT_RADII.map((r) => (
+          <path
+            key={`front-${r}`}
+            d={`M ${CX - r} ${CY} A ${r} ${r * TILT} 0 0 0 ${CX + r} ${CY}`}
+            fill="none"
+            stroke="#EDE4D0"
+            strokeOpacity={0.12}
+          />
+        ))}
 
         {/* 3. Attackers on the near side */}
         {inFront.map((b) => (

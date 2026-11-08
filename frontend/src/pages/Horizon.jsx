@@ -36,14 +36,14 @@ export default function Horizon() {
   return (
     <Frame title="The Horizon">
       {error && <p className="mb-4 text-sm text-destructive">Lost signal: {error}</p>}
-      <div className="grid items-center gap-10 xl:grid-cols-[1fr_320px]">
+      <div className="grid items-center gap-10 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* The black hole */}
         <section>
           <BlackHole sessions={sessions} />
         </section>
 
         {/* Readouts */}
-        <aside className="space-y-8">
+        <aside className="min-w-0 space-y-8">
           {canShowDilation && (
             <div>
               <Label>Time dilation</Label>
@@ -70,7 +70,7 @@ export default function Horizon() {
                     <svg width="14" height="14" className="shrink-0 overflow-visible">
                       <StarSymbol category={c.category ?? 'unknown'} x={7} y={7} r={5} />
                     </svg>
-                    <span className="font-display text-lg italic">{c.name ?? c.label ?? c.id}</span>
+                    <span className="min-w-0 truncate font-display text-lg italic">{c.name ?? c.label ?? c.id}</span>
                     <span className="ml-auto font-mono text-xs text-muted-foreground">{c.session_count}</span>
                   </Link>
                 </li>
@@ -80,7 +80,7 @@ export default function Horizon() {
         </aside>
       </div>
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-2">
+      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Latest attackers */}
         <section>
           <div className="flex items-baseline justify-between">
@@ -92,13 +92,13 @@ export default function Horizon() {
               <li key={s.id}>
                 <Link
                   to={`/transmissions/${s.id}`}
-                  className="grid grid-cols-[90px_1fr_auto] items-center gap-4 border-b border-border/50 py-2 font-mono text-sm hover:bg-card"
+                  className="grid grid-cols-[80px_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[90px_minmax(0,1fr)_auto] border-b border-border/50 py-2 font-mono text-sm hover:bg-card"
                 >
                   <span className={s.status === 'active' ? 'text-live' : 'text-muted-foreground'}>
                     {s.status === 'active' ? '● ' : ''}{catalogueId(s.id)}
                   </span>
-                  <span>{s.src_ip}</span>
-                  <span className="text-xs text-muted-foreground">{timeAgo(s.started_at)}</span>
+                  <span className="truncate">{s.src_ip}</span>
+                  <span className="text-xs text-muted-foreground max-sm:hidden">{timeAgo(s.started_at)}</span>
                 </Link>
               </li>
             ))}
@@ -110,7 +110,7 @@ export default function Horizon() {
           <Label>Newest indicators</Label>
           <ul className="mt-2">
             {newestIocs.map((i) => (
-              <li key={i.id} className="grid grid-cols-[90px_1fr] items-center gap-4 border-b border-border/50 py-2">
+              <li key={i.id} className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-4 border-b border-border/50 py-2">
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{i.type.replace('_', ' ')}</span>
                 <span className="truncate font-mono text-sm">{i.value}</span>
               </li>

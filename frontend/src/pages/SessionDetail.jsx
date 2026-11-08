@@ -112,13 +112,13 @@ function Replay({ id }) {
         {session.status === 'active' && <span className="mb-1 text-sm text-live">● still connected</span>}
       </div>
 
-      {session.session_flagged && <p className="mt-3 text-sm text-destructive">Flag reason: {session.session_flag_reason?.replaceAll('_', ' ') ?? 'Flagged for review'}</p>}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+      {session.session_flagged && <p className="mt-3 text-sm text-destructive [overflow-wrap:anywhere]">Flag reason: {session.session_flag_reason?.replaceAll('_', ' ') ?? 'Flagged for review'}</p>}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         {/* Terminal */}
-        <div className="border border-border">
+        <div className="min-w-0 border border-border">
           <div
             ref={terminalRef}
-            className="h-[420px] overflow-y-auto bg-[#0A0F1C] p-4 font-mono text-[13px] leading-relaxed"
+            className="h-[420px] overflow-y-auto bg-[#0A0F1C] p-4 font-mono text-[13px] leading-relaxed [overflow-wrap:anywhere]"
           >
             {visible.map((e, i) => (
               <Line key={i} event={e} highlight={highlightValues} />
@@ -131,7 +131,7 @@ function Replay({ id }) {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-4 border-t border-border px-4 py-3">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-4 py-3">
             <button
               onClick={togglePlay}
               disabled={events.length === 0}
@@ -147,10 +147,10 @@ function Replay({ id }) {
               value={time}
               onChange={(e) => setTime(Number(e.target.value))}
               disabled={events.length === 0}
-              className="flex-1 accent-live"
+              className="min-w-32 flex-1 accent-live"
               aria-label="Replay position"
             />
-            <span className="w-32 whitespace-nowrap text-right font-mono text-xs text-muted-foreground">
+            <span className="whitespace-nowrap font-mono text-xs text-muted-foreground">
               {formatDuration(Math.floor(time))} / {formatDuration(Math.floor(end))}
             </span>
             <div className="flex gap-2">
@@ -168,12 +168,12 @@ function Replay({ id }) {
         </div>
 
         {/* Side panel */}
-        <aside className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           {cluster && (
             <div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Constellation</div>
               <div className="mt-1 font-display text-2xl italic">{cluster.name ?? cluster.label ?? cluster.id}</div>
-              <p className="mt-1 text-sm text-muted-foreground">{cluster.summary}</p>
+              <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">{cluster.summary}</p>
             </div>
           )}
           <div>

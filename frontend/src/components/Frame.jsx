@@ -5,14 +5,14 @@
 
 export default function Frame({ title, caption, leading, fill = false, children }) {
   return (
-    <section className={`neatline bg-night ${fill ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+    <section className={`neatline min-w-0 bg-night ${fill ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
       <div className="graduated-x absolute inset-x-[5px] top-[5px]" aria-hidden="true" />
       <div className="graduated-y absolute inset-y-[5px] left-[5px]" aria-hidden="true" />
 
-      <div className={`px-6 pb-8 pt-10 sm:px-10 ${fill ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
+      <div className={`min-w-0 px-5 pb-8 pt-10 sm:px-10 ${fill ? 'flex min-h-0 flex-1 flex-col' : ''}`}>
         <header className="mb-8 shrink-0">
           {leading && <div className="mb-3">{leading}</div>}
-          <h1 className="font-display text-5xl italic">{title}</h1>
+          <h1 className="font-display text-4xl italic [overflow-wrap:anywhere] sm:text-5xl">{title}</h1>
           {caption && <p className="mt-2 max-w-xl text-sm text-muted-foreground">{caption}</p>}
         </header>
         {children}

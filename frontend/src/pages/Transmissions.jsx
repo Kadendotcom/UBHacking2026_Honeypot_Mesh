@@ -33,7 +33,7 @@ export default function Transmissions() {
     <Frame title="Transmissions" fill>
       <div className="flex min-h-0 flex-1 flex-col">
         {error && <p className="mb-4 shrink-0 text-sm text-destructive">Lost signal: {error}</p>}
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3">
           <FilterButton active={filter === 'all'} onClick={() => setFilter('all')}>
             All · {sessions.length}
           </FilterButton>
@@ -47,21 +47,21 @@ export default function Transmissions() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search IP…"
-            className="ml-auto w-56 border border-border bg-transparent px-3 py-1.5 font-mono text-sm outline-none placeholder:text-muted-foreground focus:border-foreground"
+            className="w-full min-w-0 border sm:ml-auto sm:w-56 border-border bg-transparent px-3 py-1.5 font-mono text-sm outline-none placeholder:text-muted-foreground focus:border-foreground"
           />
         </div>
 
         <div className="mt-4 min-h-0 flex-1 overflow-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full whitespace-nowrap text-left text-xs sm:text-sm [&_td]:pr-3 [&_th]:pr-3 sm:[&_td]:pr-4 sm:[&_th]:pr-4">
             <thead>
               <tr className="border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground">
-                <th className="py-2 font-normal">Catalogue</th>
+                <th className="py-2 font-normal max-sm:hidden">Catalogue</th>
                 <th className="py-2 font-normal">Origin</th>
-                <th className="py-2 font-normal">Risk</th>
-                <th className="py-2 font-normal">Via</th>
-                <th className="py-2 font-normal">Constellation</th>
+                <th className="py-2 font-normal max-sm:hidden">Risk</th>
+                <th className="py-2 font-normal max-lg:hidden">Via</th>
+                <th className="py-2 font-normal max-md:hidden">Constellation</th>
                 <th className="py-2 font-normal">Trapped</th>
-                <th className="py-2 font-normal">Sighted</th>
+                <th className="py-2 font-normal max-lg:hidden">Sighted</th>
               </tr>
             </thead>
             <tbody>
@@ -71,24 +71,25 @@ export default function Transmissions() {
                   onClick={() => navigate(`/transmissions/${s.id}`)}
                   className="cursor-pointer border-b border-border/50 transition-colors hover:bg-card"
                 >
-                  <td className="py-3 font-mono">
+                  <td className="py-3 font-mono max-sm:hidden">
                     {s.status === 'active' && <span className="mr-2 text-live">●</span>}
                     {catalogueId(s.id)}
                   </td>
                   <td className="py-3 font-mono">
-                    {s.src_ip} <span className="text-muted-foreground">{s.country ?? 'Unknown'}</span>
+                    {s.status === 'active' && <span className="mr-2 text-live sm:hidden">●</span>}
+                    {s.src_ip} <span className="text-muted-foreground max-sm:hidden">{s.country ?? 'Unknown'}</span>
                   </td>
-                  <td className="py-3" title={s.session_flag_reason ?? ''}>
+                  <td className="py-3 max-sm:hidden" title={s.session_flag_reason ?? ''}>
                     {s.session_flagged ? <span className="text-destructive">{s.session_priority === 'high' ? 'High priority' : 'Review'}</span> : 'Unflagged'}
                   </td>
-                  <td className="py-3 font-mono uppercase text-muted-foreground">{s.protocol}</td>
-                  <td className="py-3 font-display text-base italic">
+                  <td className="py-3 font-mono uppercase text-muted-foreground max-lg:hidden">{s.protocol}</td>
+                  <td className="whitespace-normal py-3 font-display text-base italic max-md:hidden">
                     {clusterName(s.cluster_id) ?? <span className="text-muted-foreground">Uncharted</span>}
                   </td>
                   <td className={`py-3 font-mono ${s.status === 'active' ? 'text-live' : ''}`}>
                     {formatDuration(s.duration_s)}
                   </td>
-                  <td className="py-3 text-muted-foreground">{timeAgo(s.started_at)}</td>
+                  <td className="py-3 text-muted-foreground max-lg:hidden">{timeAgo(s.started_at)}</td>
                 </tr>
               ))}
             </tbody>
