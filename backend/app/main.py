@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware 
 from . import store 
 from .models import EventIn
@@ -20,11 +20,37 @@ def health():
 
 @app.get("/sessions")
 def list_sessions():
-    return [dict(r) for r in store.list_sessions()]
+    return store.list_sessions()
+
+
 @app.post("/events")
 def post_event(ev: EventIn):
     store.insert_event(ev)
     return {"ok": True}
+
+
+@app.get("/sessions/{session_id}")
+def get_session(session_id: str):
+    session = store.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="no such session")
+    return session
+
+
+@app.get("/clusters")
+def get_clusters():
+    return store.list_clusters()
+
+
+@app.get("/iocs")
+def get_iocs():
+    return store.list_iocs()
+
+
+@app.get("/stats")
+def get_stats():
+    return store.get_stats()
+
 
 @app.get("/sessions/{session_id}/events")
 def get_session_events(session_id: str):
