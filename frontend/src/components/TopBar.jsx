@@ -16,7 +16,7 @@ export default function TopBar() {
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 overflow-hidden border-b border-border px-4 sm:gap-8 sm:px-6">
-      <span className="shrink-0 whitespace-nowrap font-display text-xl italic">Gravity Well</span>
+      <span className="shrink-0 whitespace-nowrap font-display text-xl italic">GravityWell</span>
 
       {error && <span className="truncate text-sm text-destructive">Lost signal: {error}</span>}
       {!stats && !error && <span className="truncate text-sm text-muted-foreground">Scanning the sky…</span>}

@@ -6,7 +6,7 @@ export const CATEGORIES = {
   miner: 'Cryptominer',
   credential_theft: 'Credential theft',
   web_exploit: 'Web exploit',
-  unknown: 'Unknown',
+  unknown: 'Unclassified',
 }
 
 export default function StarSymbol({ category, x, y, r, active = false, faint = false }) {
@@ -30,8 +30,9 @@ export default function StarSymbol({ category, x, y, r, active = false, faint = 
     case 'web_exploit': // square
       shape = <rect x={x - r * 0.9} y={y - r * 0.9} width={r * 1.8} height={r * 1.8} {...props} />
       break
-    default: // unknown: small dot
-      shape = <circle cx={x} cy={y} r={Math.min(r, 3)} {...props} />
+    default: // unknown / not yet classified: plain filled dot. Sized like the rest,
+      // so "bigger = trapped longer" still holds before the ML has run.
+      shape = <circle cx={x} cy={y} r={r * 0.8} {...props} />
   }
 
   return (

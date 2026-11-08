@@ -12,7 +12,7 @@ export default function NavRail() {
       {/* Mark: the black hole in miniature. Sits in a cell as tall as the top bar so the borders line up. */}
       <NavLink
         to="/"
-        aria-label="Gravity Well home"
+        aria-label="GravityWell home"
         className="mb-4 flex h-14 w-full shrink-0 items-center justify-center border-b border-border"
       >
         <Mark />

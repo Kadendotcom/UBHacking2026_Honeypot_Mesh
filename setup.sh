@@ -47,6 +47,18 @@ else
   warn "mlx-8bit/ model dir missing — base_server.py needs it (gitignored; get it from a teammate)"
 fi
 
+if [ -f models/attack_classifier.joblib ]; then
+  ok "classifier found at models/attack_classifier.joblib"
+elif [ -f data/curated.jsonl ]; then
+  mkdir -p models
+  .venv/bin/python download_dataset.py >/dev/null
+  .venv/bin/python train_classifier.py >/dev/null
+  ok "trained models/attack_classifier.joblib from data/curated.jsonl"
+else
+  warn "models/attack_classifier.joblib missing — base_server.py needs it (gitignored)."
+  warn "  Get the .joblib from a teammate, or put data/curated.jsonl here and re-run ./setup.sh to train it"
+fi
+
 step "Backend venv (backend/.venv)"
 [ -d backend/.venv ] || python3 -m venv backend/.venv
 backend/.venv/bin/pip install -q --upgrade pip
