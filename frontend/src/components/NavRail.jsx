@@ -1,9 +1,34 @@
 import { NavLink } from 'react-router'
 
+// Icons are drawn as SVG on the same 20×20 grid, filling the same space. Unicode
+// glyphs (◉ ≋ ✶) came from different fallback fonts and rendered at different sizes.
+const ICON_SIZE = 20
+
+const icons = {
+  // ◉ a ringed core
+  horizon: (
+    <>
+      <circle cx="10" cy="10" r="8.25" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="10" cy="10" r="4.5" fill="currentColor" />
+    </>
+  ),
+  // ≋ three waves
+  signals: (
+    <path
+      d="M2 5.5q2-2 4 0t4 0 4 0 4 0M2 10q2-2 4 0t4 0 4 0 4 0M2 14.5q2-2 4 0t4 0 4 0 4 0"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  ),
+  // ✶ six-pointed star
+  chart: <polygon points={starPoints(10, 10, 9, 3.6, 6)} fill="currentColor" />,
+}
+
 const links = [
-  { to: '/', label: 'Horizon', icon: '◉', end: true },
-  { to: '/transmissions', label: 'Signals', icon: '≋' },
-  { to: '/chart', label: 'Chart', icon: '✶' },
+  { to: '/', label: 'Horizon', icon: 'horizon', end: true },
+  { to: '/transmissions', label: 'Signals', icon: 'signals' },
+  { to: '/chart', label: 'Chart', icon: 'chart' },
 ]
 
 export default function NavRail() {
@@ -34,7 +59,9 @@ export default function NavRail() {
               {isActive && (
                 <span className="absolute left-2 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-live" />
               )}
-              <span className="text-xl" aria-hidden="true">{link.icon}</span>
+              <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 20 20" fill="none" aria-hidden="true" className="my-1">
+                {icons[link.icon]}
+              </svg>
               <span className="text-[10px] uppercase tracking-widest">{link.label}</span>
             </>
           )}
@@ -56,4 +83,15 @@ function Mark() {
       <circle cx="30.2" cy="15.6" r="1.7" fill="var(--color-live)" />
     </svg>
   )
+}
+
+// Points of a star polygon, alternating between the outer and inner radius
+function starPoints(cx, cy, outer, inner, spikes) {
+  const pts = []
+  for (let i = 0; i < spikes * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner
+    const a = (Math.PI / spikes) * i - Math.PI / 2
+    pts.push(`${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`)
+  }
+  return pts.join(' ')
 }
