@@ -68,6 +68,7 @@ A group of similar attacks found by the ML.
 ```json
 {
   "id": "c1",
+  "category": "botnet",
   "name": "Mirai Nebula",
   "label": "IoT botnet dropper",
   "summary": "Logs in with default credentials, checks the CPU architecture, then ...",
@@ -81,6 +82,7 @@ A group of similar attacks found by the ML.
 
 | Field | Notes |
 |---|---|
+| `category` | One of `recon`, `botnet`, `miner`, `credential_theft`, `web_exploit`, `unknown`. Decides the star symbol on the chart, so it must be one of these exact values |
 | `name` | Space-themed display name (an LLM can generate these) |
 | `label` | Plain description of the attack type |
 | `summary` | 1–3 sentence explanation (LLM-written) |

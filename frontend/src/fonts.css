@@ -1,0 +1,18 @@
+/*
+ * All fonts for the project live here.
+ *
+ * Instrument Serif, IBM Plex Sans and IBM Plex Mono load from Google Fonts
+ * via the <link> in index.html. To add or change a font, update that link
+ * and the tokens below.
+ *
+ * Use in Tailwind as: font-display, font-sans, font-mono, font-heading
+ */
+
+@import "@fontsource-variable/geist";
+
+@theme {
+  --font-display: "Instrument Serif", serif;
+  --font-sans: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --font-heading: var(--font-sans);
+}

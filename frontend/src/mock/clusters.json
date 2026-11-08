@@ -2,6 +2,7 @@
   {
     "id": "c1",
     "name": "Mirai Nebula",
+    "category": "botnet",
     "label": "IoT botnet dropper",
     "summary": "Logs in with default credentials, checks the CPU architecture, then tries to download and run a botnet binary from a rotating set of hosts.",
     "mitre": [
@@ -39,6 +40,7 @@
   {
     "id": "c2",
     "name": "The Miner's Belt",
+    "category": "miner",
     "label": "Cryptominer install",
     "summary": "Kills competing miners, downloads a Monero miner, and adds a cron job so it survives reboots.",
     "mitre": [
@@ -73,6 +75,7 @@
   {
     "id": "c3",
     "name": "Keysnatcher",
+    "category": "credential_theft",
     "label": "Credential theft",
     "summary": "Hunts for cloud keys, SSH keys and .env files, then sends what it finds to an external server.",
     "mitre": [
@@ -98,6 +101,7 @@
   {
     "id": "c4",
     "name": "Recon Drift",
+    "category": "recon",
     "label": "Reconnaissance",
     "summary": "Looks around and leaves: system info, users, network config. Often the first visit before a later attack.",
     "mitre": [
