@@ -43,3 +43,6 @@ models/
 Thumbs.db
 *~
 *.swp
+
+# Local model files
+mlx-8bit/

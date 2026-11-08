@@ -8,8 +8,9 @@ import uuid
 from model_inference import generate_response
 import paramiko
 from fake_session import FakeSession
-import httpx
-
+import json
+import urllib.request
+import queue
 # SSH host keys
 HOSTKEY_RSA = paramiko.RSAKey(filename="keys/server_rsa")
 HOSTKEY_ECDSA = paramiko.ECDSAKey(filename="keys/server_ecdsa")
@@ -22,28 +23,58 @@ logger = logging.getLogger(__name__)
 
 
 COLLECTOR_URL = "http://127.0.0.1:8000/events"
-NODE_ID = "honeypot-1"
+NODE_ID = "n1"
+
+
+event_queue = queue.Queue(maxsize=1000)
+
+
+def event_worker():
+    while True:
+        payload = event_queue.get()
+
+        try:
+            request = urllib.request.Request(
+                COLLECTOR_URL,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+
+            with urllib.request.urlopen(request, timeout=2) as response:
+                response.read()
+
+        except Exception:
+            logger.exception("Failed to send event to backend")
+
+        finally:
+            event_queue.task_done()
 
 
 def send_event(session_id, src_ip, event_type, **fields):
-    payload = {
-        "session_id": session_id,
-        "src_ip": src_ip,
-        "type": event_type,
-        "protocol": "ssh",
-        "node_id": NODE_ID,
-        **fields,
-    }
-
     try:
-        response = httpx.post(
-            COLLECTOR_URL,
-            json=payload,
-            timeout=2.0,
-        )
-        response.raise_for_status()
-    except httpx.HTTPError:
-        logger.exception("Failed to send %s event to backend", event_type)
+        payload = {
+            "session_id": session_id,
+            "src_ip": src_ip,
+            "node_id": NODE_ID,
+            "type": event_type,
+            "protocol": "ssh",
+            **fields,
+        }
+
+        event_queue.put_nowait(payload)
+
+    except queue.Full:
+        logger.warning("Event queue full; dropping %s event", event_type)
+    except Exception:
+        logger.exception("Failed to queue event")
+
+
+threading.Thread(
+    target=event_worker,
+    name="collector-worker",
+    daemon=True,
+).start()
 class BaseServer(paramiko.ServerInterface):
 
     def __init__(self):
@@ -74,21 +105,49 @@ class BaseServer(paramiko.ServerInterface):
 
             "cat secrets.txt": "FAKE_PASSWORD=example123",
         }
+        self.responses.update({
+            "sudo -l": (
+                "Matching Defaults entries for root on ubuntu:\n"
+                "    env_reset, mail_badpass\n\n"
+                "User root may run the following commands on ubuntu:\n"
+                "    (ALL : ALL) ALL"
+            ),
+            "hostname": "ubuntu",
+            "id": "uid=0(root) gid=0(root) groups=0(root)",
+            "uname": "Linux",
+            "ls -a": ". .. .bashrc Documents Downloads secrets.txt",
+            "ls /": "bin boot dev etc home lib opt proc root tmp usr var",
+            "cat /etc/hostname": "ubuntu",
+            "cat /etc/os-release": (
+                'PRETTY_NAME="Ubuntu 22.04.5 LTS"\n'
+                'NAME="Ubuntu"\n'
+                'VERSION_ID="22.04"'
+            ),
+            "cat secrets.txt": "DB_USER=demo\nDB_PASSWORD=FAKE_PASSWORD",
+            "ps aux": (
+                "USER PID %CPU %MEM COMMAND\n"
+                "root 1 0.0 0.1 /sbin/init\n"
+                "root 782 0.0 0.2 /usr/sbin/sshd"
+            ),
+            "systemctl status ssh": (
+                "● ssh.service - OpenBSD Secure Shell server\n"
+                "     Active: active (running)"
+            ),
+        })
 
     # Authentication
     def get_allowed_auths(self, username):
         return "password"
 
     def check_auth_password(self, username, password):
-        if username == "user" and password == "password":
-            send_event(
-                self.session_id, self.src_ip, "login",
-                username=username,
-            )
-            return paramiko.AUTH_SUCCESSFUL
-
-
-        return paramiko.AUTH_FAILED
+        send_event(
+            self.session_id,
+            self.src_ip,
+            "login",
+            username=username,
+            password=password,
+        )
+        return paramiko.AUTH_SUCCESSFUL
 
     # SSH channel
     def check_channel_request(self, kind, chanid):
@@ -219,94 +278,7 @@ class BaseServer(paramiko.ServerInterface):
                     channel.sendall(char.encode("utf-8"))
 
 
-        self.responses = {
-            "whoami": "root",
-            "pwd": "/root",
-            "ls": "Documents Downloads secrets.txt",
-            "uname -s": "Linux",
-            "uname -a": "Linux ubuntu 5.15.0 x86_64 GNU/Linux",
-        }
-        self.responses.update({
-            "sudo -l": (
-                "Matching Defaults entries for root on ubuntu:\n"
-                "    env_reset, mail_badpass\n\n"
-                "User root may run the following commands on ubuntu:\n"
-                "    (ALL : ALL) ALL"
-            ),
-            "hostname": "ubuntu",
-            "id": "uid=0(root) gid=0(root) groups=0(root)",
-            "uname": "Linux",
-            "ls -a": ". .. .bashrc Documents Downloads secrets.txt",
-            "ls /": "bin boot dev etc home lib opt proc root tmp usr var",
-            "cat /etc/hostname": "ubuntu",
-            "cat /etc/os-release": (
-                'PRETTY_NAME="Ubuntu 22.04.5 LTS"\n'
-                'NAME="Ubuntu"\n'
-                'VERSION_ID="22.04"'
-            ),
-            "cat secrets.txt": "DB_USER=demo\nDB_PASSWORD=FAKE_PASSWORD",
-            "ps aux": (
-                "USER PID %CPU %MEM COMMAND\n"
-                "root 1 0.0 0.1 /sbin/init\n"
-                "root 782 0.0 0.2 /usr/sbin/sshd"
-            ),
-            "systemctl status ssh": (
-                "● ssh.service - OpenBSD Secure Shell server\n"
-                "     Active: active (running)"
-            ),
-        })
-
-        buffer = ""
-       
-        while True:
-            data = channel.recv(1024)
-
-            if not data:
-                break
-
-            for char in data.decode("utf-8", errors="replace"):
-
-                if char in ("\r", "\n"):
-                    command = buffer.strip()
-                    buffer = ""
-
-                    channel.send(b"\r\n")
-
-                    if command == "exit":
-                        channel.send(b"logout\r\n")
-                        return
-
-                    if command:
-                        print(f"COMMAND: {command}", flush=True)
-
-                        output = self.execute_fake_command(command)
-
-                        send_event(
-                            self.session_id, self.src_ip, "command",
-                            command=command, response=output,
-                        )
-
-                        channel.send(
-                            (output + "\r\n").encode("utf-8")
-                        )
-
-                    terminal_output = output.replace("\r\n", "\n")
-                    terminal_output = terminal_output.replace("\r", "\n")
-                    terminal_output = terminal_output.replace("\n", "\r\n")
-
-                    channel.sendall(
-                        (terminal_output + "\r\n").encode("utf-8")
-                    )
-
-                elif char in ("\x08", "\x7f"):
-                    if buffer:
-                        buffer = buffer[:-1]
-                        channel.send(b"\b \b")
-
-                elif char.isprintable():
-                    buffer += char
-                    channel.send(char.encode("utf-8"))
-
+        
     
     # Start SSH server
     def listen(self):

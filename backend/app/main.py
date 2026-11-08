@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware 
 from . import store 
 from .models import EventIn
@@ -31,3 +31,10 @@ def get_session_events(session_id: str):
     rows = store.list_session_events(session_id)
     return [dict(row) for row in rows]
     
+@app.get("/events")
+def get_events(
+    after_id: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+):
+    rows = store.list_events(after_id, limit)
+    return [dict(row) for row in rows]

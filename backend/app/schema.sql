@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS events (
     session_id TEXT,
     ts         TEXT,
     type       TEXT,    -- "login", "command" or "logout"
+    username   TEXT,
+    password   TEXT,
     command    TEXT,    -- NULL for login/logout
     response   TEXT     -- what the honeypot sent back
 );

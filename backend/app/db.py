@@ -16,9 +16,23 @@ tLock=threading.Lock()
 
 def init_db():
     file_path = Path(__file__).parent / "schema.sql"
-    with open(file_path, "r", encoding="utf-8") as file:
+
+    with tLock:
+        with open(file_path, "r", encoding="utf-8") as file:
             conn.executescript(file.read())
-    conn.commit()
+
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(events)")
+        }
+
+        if "username" not in columns:
+            conn.execute("ALTER TABLE events ADD COLUMN username TEXT")
+
+        if "password" not in columns:
+            conn.execute("ALTER TABLE events ADD COLUMN password TEXT")
+
+        conn.commit()
     
 def query(sql, params=()):
     curs=conn.execute(sql,params)
