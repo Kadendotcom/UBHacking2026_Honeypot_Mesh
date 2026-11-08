@@ -26,7 +26,7 @@ export default function Transmissions() {
   }
 
   const shown = sessions
-    .filter((s) => filter === 'all' || s.status === 'active')
+    .filter((s) => filter === 'all' || (filter === 'flagged' ? s.session_flagged : s.status === 'active'))
     .filter((s) => s.src_ip.includes(search.trim()))
 
   return (
@@ -39,6 +39,9 @@ export default function Transmissions() {
           </FilterButton>
           <FilterButton active={filter === 'live'} onClick={() => setFilter('live')}>
             Live · {sessions.filter((s) => s.status === 'active').length}
+          </FilterButton>
+          <FilterButton active={filter === 'flagged'} onClick={() => setFilter('flagged')}>
+            Flagged · {sessions.filter((s) => s.session_flagged).length}
           </FilterButton>
           <input
             value={search}
@@ -54,6 +57,7 @@ export default function Transmissions() {
               <tr className="border-b border-border text-[10px] uppercase tracking-widest text-muted-foreground">
                 <th className="py-2 font-normal">Catalogue</th>
                 <th className="py-2 font-normal">Origin</th>
+                <th className="py-2 font-normal">Risk</th>
                 <th className="py-2 font-normal">Via</th>
                 <th className="py-2 font-normal">Constellation</th>
                 <th className="py-2 font-normal">Trapped</th>
@@ -73,6 +77,9 @@ export default function Transmissions() {
                   </td>
                   <td className="py-3 font-mono">
                     {s.src_ip} <span className="text-muted-foreground">{s.country ?? 'Unknown'}</span>
+                  </td>
+                  <td className="py-3" title={s.session_flag_reason ?? ''}>
+                    {s.session_flagged ? <span className="text-destructive">{s.session_priority === 'high' ? 'High priority' : 'Review'}</span> : 'Unflagged'}
                   </td>
                   <td className="py-3 font-mono uppercase text-muted-foreground">{s.protocol}</td>
                   <td className="py-3 font-display text-base italic">

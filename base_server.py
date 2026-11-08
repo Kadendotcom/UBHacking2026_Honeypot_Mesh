@@ -81,8 +81,17 @@ def log_command(session_id, src_ip, command, response, risk=None, username=None)
         except OSError:
             logger.exception("Failed to write JSONL log: %s", path)
 
+    return record
 
 event_queue = queue.Queue(maxsize=1000)
+
+
+def command_event_fields(record):
+    return {key: record[key] for key in (
+        "ts", "username", "command", "response", "severity", "confidence",
+        "classification_error", "session_flagged", "session_newly_flagged",
+        "session_priority", "session_flag_reason",
+    ) if key in record}
 
 
 def event_worker():
@@ -300,8 +309,10 @@ class BaseServer(paramiko.ServerInterface):
                     channel.sendall(b"\r\n")
 
                     if command == "exit":
-                        log_command(self.session_id, self.src_ip, command, "logout",
-                                    risk, self.username)
+                        record = log_command(self.session_id, self.src_ip, command, "logout",
+                                             risk, self.username)
+                        send_event(self.session_id, self.src_ip, "command",
+                                   **command_event_fields(record))
                         channel.sendall(b"logout\r\n")
                         return
 
@@ -313,11 +324,11 @@ class BaseServer(paramiko.ServerInterface):
                         if not handled:
                             output = self.execute_fake_command(command, session)
 
-                        log_command(self.session_id, self.src_ip, command, output,
-                                    risk, self.username)
+                        record = log_command(self.session_id, self.src_ip, command, output,
+                                             risk, self.username)
                         send_event(
                             self.session_id, self.src_ip, "command",
-                            command=command, response=output,
+                            **command_event_fields(record),
                         )
 
                         # Normalize line endings

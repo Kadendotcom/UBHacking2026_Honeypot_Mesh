@@ -192,8 +192,8 @@ Records include UTC `ts`, `session_id`, `src_ip`, `node_id`, `protocol`, `type`,
 `command`, `response`, integer `severity`, and numeric `confidence`.
 If classification fails, severity and confidence are null and
 `classification_error` is `classification_failed`; the shell continues.
-Local logging is independent of backend delivery. Prediction fields are kept
-in JSONL; the collector's event schema is unchanged. Logs are gitignored.
+Local logging is independent of backend delivery. Predictions and session flags
+are also sent to the collector and persisted in SQLite. Logs are gitignored.
 
 Sessions are flagged for review after one severity >=3 prediction with
 confidence >=0.70, or three severity >=2 predictions among the last five
@@ -258,3 +258,27 @@ git commit -m "Untrack <path>"
   MLX response generation is serialized; other sessions can continue using
   simulated filesystem commands while generation runs.
 - No root `requirements.txt` yet; `pip install paramiko` by hand for now.
+
+### Severity in the API and dashboard
+
+Restart the collector and honeypot after updating. Collector startup adds risk
+columns to existing databases without deleting recorded sessions. Older events
+without prediction fields remain accepted; existing records are not reclassified.
+The collector stores predictions supplied by the honeypot; it does not run the
+classifier itself.
+
+`GET /sessions` and `GET /sessions/{id}` include `username`, maximum observed
+`severity`, `session_flagged`, `session_priority`, and `session_flag_reason`.
+Flags persist after logout and priority never decreases. `/events` and
+`/sessions/{id}/events` include per-command prediction and flag fields; input
+entries in the session replay include predictions too. `/stats` includes
+`flagged_sessions` and `high_priority_sessions` across active and closed sessions.
+
+The Transmissions page provides a Flagged filter and Risk column. Session details
+show username, priority, flag reason, maximum severity, and per-input predictions.
+No flag closes an SSH session. Local logs remain available if collector delivery
+fails; failed event delivery is not retried automatically.
+
+Backend integration tests (use your backend Python environment):
+`python -m unittest backend.test_risk_api -v`.
+Set `HONEYPOT_DB_PATH` to override the collector database path.

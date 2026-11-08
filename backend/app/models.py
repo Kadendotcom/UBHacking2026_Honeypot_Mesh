@@ -15,3 +15,10 @@ class EventIn(BaseModel):
     password: str | None = None
     command: str | None = Field(default=None, max_length=4000)
     response: str | None = None
+    severity: int | None = Field(default=None, ge=0, le=4)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    classification_error: str | None = None
+    session_flagged: bool = False
+    session_newly_flagged: bool = False
+    session_priority: Literal["review", "high"] | None = None
+    session_flag_reason: str | None = None

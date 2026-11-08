@@ -14,9 +14,11 @@ def insert_event(ev:EventIn):
         db.conn.execute(
             """
             INSERT INTO events (
-                session_id, ts, type, username, password, command, response
+                session_id, ts, type, username, password, command, response,
+                severity, confidence, classification_error, session_flagged,
+                session_newly_flagged, session_priority, session_flag_reason
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 ev.session_id,
@@ -26,16 +28,37 @@ def insert_event(ev:EventIn):
                 ev.password,
                 ev.command,
                 ev.response,
+                ev.severity, ev.confidence, ev.classification_error,
+                ev.session_flagged, ev.session_newly_flagged,
+                ev.session_priority, ev.session_flag_reason,
             ),
         )
         db.conn.execute("""UPDATE sessions SET last_seen_at = ?, event_count = event_count + 1  WHERE id = ?""",(ts, ev.session_id),)
+        db.conn.execute("""
+            UPDATE sessions SET
+                username = COALESCE(?, username),
+                severity = CASE WHEN severity IS NULL OR ? > severity THEN ? ELSE severity END,
+                session_flagged = MAX(session_flagged, ?),
+                session_priority = CASE
+                    WHEN session_priority = 'high' THEN 'high'
+                    WHEN ? IS NOT NULL THEN ? ELSE session_priority END,
+                session_flag_reason = CASE
+                    WHEN session_priority = 'high' THEN session_flag_reason
+                    ELSE COALESCE(?, session_flag_reason) END
+            WHERE id = ?
+        """, (ev.username, ev.severity, ev.severity,
+              ev.session_flagged or ev.session_priority is not None,
+              ev.session_priority, ev.session_priority, ev.session_flag_reason,
+              ev.session_id))
         if ev.type == "logout": db.conn.execute( "UPDATE sessions SET status = 'closed', ended_at = ? WHERE id = ?", (ts, ev.session_id),)
         db.conn.commit()
 def list_session_events(session_id: str):
     return db.query(
         """
         SELECT id, session_id, ts, type,
-               username, password, command, response
+               username, password, command, response, severity, confidence,
+               classification_error, session_flagged, session_newly_flagged,
+               session_priority, session_flag_reason
         FROM events
         WHERE session_id = ?
         ORDER BY id ASC
@@ -47,7 +70,9 @@ def list_events(after_id: int = 0, limit: int = 100):
         """
         SELECT
             e.id, e.session_id, e.ts, e.type,
-            e.command, e.response,
+            e.command, e.response, e.username, e.severity, e.confidence,
+            e.classification_error, e.session_flagged, e.session_newly_flagged,
+            e.session_priority, e.session_flag_reason,
             s.src_ip, s.node_id, s.protocol
         FROM events AS e
         JOIN sessions AS s ON s.id = e.session_id
@@ -72,6 +97,7 @@ NODES = [
 SESSION_SELECT = """
     SELECT id, src_ip, country, protocol, node_id,
            started_at, ended_at, status, event_count, cluster_id,
+           username, severity, session_flagged, session_priority, session_flag_reason,
            CAST((julianday(COALESCE(ended_at, last_seen_at))
                  - julianday(started_at)) * 86400 AS INTEGER) AS duration_s
     FROM sessions
@@ -145,7 +171,10 @@ def get_session(session_id: str):
             events.append({"t": t, "type": "output", "text": "logout"})
         else:
             if e["command"]:
-                events.append({"t": t, "type": "input", "text": e["command"]})
+                events.append({"t": t, "type": "input", "text": e["command"],
+                               **{key: e[key] for key in (
+                                   "severity", "confidence", "classification_error",
+                                   "session_flagged", "session_priority", "session_flag_reason")}})
             if e["response"]:
                 events.append({"t": t, "type": "output", "text": e["response"]})
 
@@ -225,6 +254,8 @@ def get_stats():
             "SELECT COUNT(*) FROM sessions WHERE status = 'active'"
         ),
         "total_sessions": total_sessions,
+        "flagged_sessions": _scalar("SELECT COUNT(*) FROM sessions WHERE session_flagged = 1"),
+        "high_priority_sessions": _scalar("SELECT COUNT(*) FROM sessions WHERE session_priority = 'high'"),
         "total_engaged_s": total_engaged_s,
         "avg_engaged_s": round(total_engaged_s / total_sessions) if total_sessions else 0,
         "baseline_avg_s": BASELINE_AVG_S,

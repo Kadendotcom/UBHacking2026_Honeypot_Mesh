@@ -99,6 +99,9 @@ function Replay({ id }) {
       {error && <p className="mb-4 text-sm text-destructive">Lost signal: {error}</p>}
       {/* Details */}
       <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+        <Meta label="SSH username" value={session.username ?? 'Unknown'} />
+        <Meta label="Risk" value={session.session_flagged ? (session.session_priority === 'high' ? 'High priority' : 'Review') : 'Unflagged'} />
+        <Meta label="Maximum severity" value={session.severity ?? 'Unknown'} />
         <Meta label="Origin" value={session.country ?? 'Unknown'} />
         <Meta
           label="Trapped"
@@ -109,6 +112,7 @@ function Replay({ id }) {
         {session.status === 'active' && <span className="mb-1 text-sm text-live">● still connected</span>}
       </div>
 
+      {session.session_flagged && <p className="mt-3 text-sm text-destructive">Flag reason: {session.session_flag_reason?.replaceAll('_', ' ') ?? 'Flagged for review'}</p>}
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_280px]">
         {/* Terminal */}
         <div className="border border-border">
@@ -200,6 +204,7 @@ function Line({ event, highlight }) {
       <div className="whitespace-pre-wrap">
         <span className="text-live">attacker $ </span>
         {highlightIocs(event.text, highlight)}
+        {event.severity != null && <span className="ml-3 text-xs text-muted-foreground">[severity {event.severity} · confidence {event.confidence ?? 'unknown'}]</span>}
       </div>
     )
   }

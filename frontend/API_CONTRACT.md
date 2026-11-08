@@ -63,3 +63,18 @@ source; the frontend hides time dilation until a positive baseline is
 provided.
 
 The frontend polls until a push-based `WS /live` endpoint exists.
+
+## Command severity and session risk
+
+Command events accept optional `severity` (0–4), `confidence` (0–1),
+`classification_error`, `session_flagged`, `session_newly_flagged`,
+`session_priority` (`review`, `high`, or null), and `session_flag_reason`.
+These fields are returned by the event endpoints. Older event producers can omit
+all risk fields. The collector persists supplied predictions without inference.
+
+Session list/detail responses include `username`, maximum `severity`,
+`session_flagged`, `session_priority`, and `session_flag_reason`. Flags persist
+through logout and high priority never downgrades. Session replay input entries
+include severity, confidence, classification error, and session risk details.
+SQLite-backed flag fields are serialized as 0/1. Stats include total
+`flagged_sessions` and `high_priority_sessions`, including closed sessions.

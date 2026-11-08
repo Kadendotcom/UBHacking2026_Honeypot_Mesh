@@ -55,8 +55,8 @@ class CommandLoggingTests(unittest.TestCase):
                          ["root", "fallback output", "logout"])
         self.assertTrue(all(r["severity"] == 2 and r["confidence"] == 0.875
                             and r["session_id"] == "session-test" for r in records))
-        self.assertEqual(send_event.call_count, 2)
-        self.assertNotIn("severity", send_event.call_args.kwargs)
+        self.assertEqual(send_event.call_count, 3)
+        self.assertEqual(send_event.call_args.kwargs["severity"], 2)
         self.assertFalse(records[0]["session_flagged"])
         self.assertTrue(records[-1]["session_newly_flagged"])
         self.assertEqual(records[-1]["session_flag_reason"],
