@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
 import { getStats } from '@/api'
 import { formatDuration } from '@/lib/format'
+import usePolling from '@/lib/usePolling'
 
 function Stat({ label, value, live = false }) {
   return (
@@ -12,18 +12,11 @@ function Stat({ label, value, live = false }) {
 }
 
 export default function TopBar() {
-  const [stats, setStats] = useState(null)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    getStats()
-      .then((data) => setStats(data))
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data: stats, error } = usePolling(getStats)
 
   return (
     <header className="flex h-14 items-center gap-8 border-b border-border px-6">
-      <span className="font-display text-xl italic">Event Horizon</span>
+      <span className="font-display text-xl italic">Gravity Well</span>
 
       {error && <span className="text-sm text-destructive">Lost signal: {error}</span>}
       {!stats && !error && <span className="text-sm text-muted-foreground">Scanning the sky…</span>}

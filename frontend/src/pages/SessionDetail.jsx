@@ -38,30 +38,44 @@ function Replay({ id }) {
       .catch((err) => setError(err.message))
   }, [id])
 
-  const end = session ? session.events.at(-1).t + 1 : 0
-  const finished = session !== null && time >= end
+  useEffect(() => {
+    if (session?.status !== 'active') return
+    const timer = setInterval(() => {
+      getSession(id)
+        .then((updatedSession) => {
+          setSession(updatedSession)
+          setError(null)
+        })
+        .catch((err) => setError(err.message))
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [id, session?.status])
+
+  const events = session?.events ?? []
+  const end = events.length ? events.at(-1).t + 1 : 0
+  const finished = session !== null && (events.length === 0 || time >= end)
 
   // The playback clock: while playing, move time forward 10 times a second
   useEffect(() => {
-    if (!playing || !session || finished) return
+    if (!playing || !session || events.length === 0 || finished) return
     const timer = setInterval(() => {
       setTime((t) => Math.min(t + 0.1 * speed, end))
     }, 100)
     return () => clearInterval(timer) // stop the old timer when anything changes
-  }, [playing, speed, session, end, finished])
+  }, [playing, speed, session, end, events.length, finished])
 
   // Keep the terminal scrolled to the newest line
   useEffect(() => {
     if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight
   }, [time])
 
-  if (error) return <p className="text-destructive">Lost signal: {error}</p>
+  if (!session && error) return <p className="text-destructive">Lost signal: {error}</p>
   if (!session) return <PageLoader />
 
   const cluster = clusters.find((c) => c.id === session.cluster_id)
-  const sessionIocs = iocs.filter((i) => session.ioc_ids.includes(i.id))
+  const sessionIocs = iocs.filter((i) => (i.session_ids ?? []).includes(session.id))
   const highlightValues = sessionIocs.map((i) => i.value).filter((v) => v !== session.src_ip)
-  const visible = session.events.filter((e) => e.t <= time)
+  const visible = events.filter((e) => e.t <= time)
 
   function togglePlay() {
     if (finished) {
@@ -82,15 +96,16 @@ function Replay({ id }) {
         </Link>
       }
     >
+      {error && <p className="mb-4 text-sm text-destructive">Lost signal: {error}</p>}
       {/* Details */}
       <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
-        <Meta label="Origin" value={session.country} />
+        <Meta label="Origin" value={session.country ?? 'Unknown'} />
         <Meta
           label="Trapped"
           value={formatDuration(session.duration_s)}
           live={session.status === 'active'}
         />
-        <Meta label="Constellation" value={cluster?.name ?? 'Uncharted'} serif />
+        <Meta label="Constellation" value={cluster ? (cluster.name ?? cluster.label ?? cluster.id) : 'Uncharted'} serif />
         {session.status === 'active' && <span className="mb-1 text-sm text-live">● still connected</span>}
       </div>
 
@@ -104,12 +119,20 @@ function Replay({ id }) {
             {visible.map((e, i) => (
               <Line key={i} event={e} highlight={highlightValues} />
             ))}
-            {!finished && <span className="animate-pulse text-live">▌</span>}
+            {events.length === 0 ? (
+              <p className="text-muted-foreground">No activity recorded yet.</p>
+            ) : (
+              !finished && <span className="animate-pulse text-live">▌</span>
+            )}
           </div>
 
           {/* Controls */}
           <div className="flex items-center gap-4 border-t border-border px-4 py-3">
-            <button onClick={togglePlay} className="w-16 text-left text-xs uppercase tracking-widest hover:text-live">
+            <button
+              onClick={togglePlay}
+              disabled={events.length === 0}
+              className="w-16 text-left text-xs uppercase tracking-widest hover:text-live disabled:cursor-not-allowed disabled:text-muted-foreground"
+            >
               {finished ? 'Replay' : playing ? 'Pause' : 'Play'}
             </button>
             <input
@@ -119,6 +142,7 @@ function Replay({ id }) {
               step={0.1}
               value={time}
               onChange={(e) => setTime(Number(e.target.value))}
+              disabled={events.length === 0}
               className="flex-1 accent-live"
               aria-label="Replay position"
             />
@@ -144,7 +168,7 @@ function Replay({ id }) {
           {cluster && (
             <div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Constellation</div>
-              <div className="mt-1 font-display text-2xl italic">{cluster.name}</div>
+              <div className="mt-1 font-display text-2xl italic">{cluster.name ?? cluster.label ?? cluster.id}</div>
               <p className="mt-1 text-sm text-muted-foreground">{cluster.summary}</p>
             </div>
           )}

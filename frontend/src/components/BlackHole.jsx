@@ -49,7 +49,7 @@ export default function BlackHole({ sessions }) {
   const [hovered, setHovered] = useState(null)
 
   // Work out where every attacker is right now
-  const bodies = sessions.map((s, i) => {
+  const bodies = sessions.slice(0, 60).map((s, i) => {
     const r = orbitRadius(s.duration_s)
     const angle = i * 2.39996 + t * orbitSpeed(r) // 2.39996 = golden angle, spreads them out
     return {
@@ -101,7 +101,7 @@ export default function BlackHole({ sessions }) {
         >
           <div>{hovered.src_ip}</div>
           <div className="text-muted-foreground">
-            {hovered.status === 'active' ? 'still falling in' : 'escaped'} · {hovered.country}
+            {hovered.status === 'active' ? 'still falling in' : 'escaped'} · {hovered.country ?? 'Unknown'}
           </div>
         </div>
       )}

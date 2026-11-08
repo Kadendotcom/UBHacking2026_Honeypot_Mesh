@@ -1,31 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { getClusters, getSessions } from '@/api'
 import { formatDuration } from '@/lib/format'
+import usePolling from '@/lib/usePolling'
 import { WIDTH, HEIGHT, makeScale, starRadius, constellationLines, centroid } from '@/lib/starchart'
 import StarSymbol, { CATEGORIES } from '@/components/StarSymbol'
 import Frame from '@/components/Frame'
 import PageLoader from '@/components/PageLoader'
 
 export default function StarChart() {
-  const [sessions, setSessions] = useState(null)
-  const [clusters, setClusters] = useState(null)
-  const [error, setError] = useState(null)
   const [hovered, setHovered] = useState(null)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    Promise.all([getSessions(), getClusters()])
-      .then(([s, c]) => {
-        setSessions(s)
-        setClusters(c)
-      })
-      .catch((err) => setError(err.message))
-  }, [])
+  const { data, error } = usePolling(async () => {
+    const [sessions, clusters] = await Promise.all([getSessions(), getClusters()])
+    return { sessions, clusters }
+  })
 
-  if (error) return <p className="text-destructive">Lost signal: {error}</p>
-  if (!sessions || !clusters) return <PageLoader />
+  if (!data && error) return <p className="text-destructive">Lost signal: {error}</p>
+  if (!data) return <PageLoader />
 
+  const { sessions, clusters } = data
   const scale = makeScale(sessions)
   const categoryOf = (clusterId) => clusters.find((c) => c.id === clusterId)?.category ?? 'unknown'
 
@@ -36,6 +31,7 @@ export default function StarChart() {
 
   return (
     <Frame title="Star Chart" fill>
+      {error && <p className="mb-2 text-sm text-destructive">Lost signal: {error}</p>}
       {/* Take the leftover height; the chart scales to fit it without scrolling */}
       <div className="flex min-h-60 flex-1 items-center justify-center" style={{ containerType: 'size' }}>
       <div
@@ -51,6 +47,17 @@ export default function StarChart() {
             <line key={`h${i}`} x1={0} y1={(i + 1) * 91} x2={WIDTH} y2={(i + 1) * 91} stroke="var(--border)" strokeWidth={0.5} />
           ))}
 
+          {stars.length === 0 && (
+            <text
+              x={WIDTH / 2}
+              y={HEIGHT / 2}
+              textAnchor="middle"
+              className="fill-muted-foreground font-mono text-sm"
+            >
+              No sessions have chart coordinates yet.
+            </text>
+          )}
+
           {/* Constellations: lines + name */}
           {clusters.map((cluster) => {
             const members = stars.filter((s) => s.cluster_id === cluster.id)
@@ -63,7 +70,7 @@ export default function StarChart() {
                   <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--foreground)" strokeOpacity={0.35} strokeWidth={1} />
                 ))}
                 <text x={center.x} y={top - 28} textAnchor="middle" className="fill-foreground font-display text-[22px] italic">
-                  {cluster.name}
+                  {cluster.name ?? cluster.label ?? cluster.id}
                 </text>
                 <text x={center.x} y={top - 12} textAnchor="middle" className="fill-muted-foreground font-mono text-[10px] uppercase tracking-widest">
                   {CATEGORIES[cluster.category] ?? 'Unknown'} · {members.length} sightings
@@ -103,7 +110,7 @@ export default function StarChart() {
           >
             <div className="text-sm text-foreground">{hovered.src_ip}</div>
             <div className="text-muted-foreground">
-              {hovered.cluster_id ? CATEGORIES[categoryOf(hovered.cluster_id)] : 'Uncharted'} · trapped {formatDuration(hovered.duration_s)}
+              {hovered.cluster_id ? (CATEGORIES[categoryOf(hovered.cluster_id)] ?? 'Unknown') : 'Uncharted'} · trapped {formatDuration(hovered.duration_s)}
             </div>
             {hovered.status === 'active' && <div className="text-live">● still connected</div>}
           </div>

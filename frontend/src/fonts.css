@@ -1,7 +1,7 @@
 /*
  * All fonts for the project live here.
  *
- * Instrument Serif, IBM Plex Sans and IBM Plex Mono load from Google Fonts
+ * Cormorant Garamond, IBM Plex Sans and IBM Plex Mono load from Google Fonts
  * via the <link> in index.html. To add or change a font, update that link
  * and the tokens below.
  *
@@ -11,7 +11,7 @@
 @import "@fontsource-variable/geist";
 
 @theme {
-  --font-display: "Instrument Serif", serif;
+  --font-display: "Cormorant Garamond", serif;
   --font-sans: "IBM Plex Sans", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
   --font-heading: var(--font-sans);
