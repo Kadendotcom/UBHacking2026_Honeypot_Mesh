@@ -29,6 +29,56 @@ logger = logging.getLogger(__name__)
 
 COLLECTOR_URL = "http://127.0.0.1:8000/events"
 NODE_ID = "n1"
+
+# --------------------------------------------------------------------------- #
+# Network exposure
+#
+# Default is loopback: only this machine can connect. That is the right default
+# for development and the only safe one on a shared/campus network.
+#
+# To let a judge connect from their own laptop, join a private phone hotspot or
+# travel router with BOTH machines, then start the honeypot with:
+#
+#     HONEYPOT_HOST=0.0.0.0 python base_server.py
+#
+# Never do that while attached to campus or venue Wi-Fi: it puts an SSH service
+# that accepts any password onto a network you do not own, which almost
+# certainly breaches the acceptable-use policy. A hotspot is your own network,
+# so the only machines on it are ones you invited.
+# --------------------------------------------------------------------------- #
+HONEYPOT_HOST = os.environ.get("HONEYPOT_HOST", "127.0.0.1")
+HONEYPOT_PORT = int(os.environ.get("HONEYPOT_PORT", "2222"))
+
+# Caps so nobody can exhaust the LLM, the thread pool or the API budget.
+MAX_SESSIONS = int(os.environ.get("MAX_SESSIONS", "5"))
+
+_active_sessions = 0
+_session_count_lock = threading.Lock()
+
+
+def _local_ips():
+    """IPv4 addresses this machine is reachable on, loopback excluded."""
+    ips = set()
+
+    # Opening a UDP socket sends no packets; it just resolves the default route,
+    # which is the address another device on the same network would use.
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            probe.connect(("8.8.8.8", 80))
+            ips.add(probe.getsockname()[0])
+        finally:
+            probe.close()
+    except OSError:
+        pass
+
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ips.add(info[4][0])
+    except OSError:
+        pass
+
+    return sorted(ip for ip in ips if not ip.startswith("127."))
 COMMAND_LOG_PATH = Path(os.environ.get(
     "COMMAND_LOG_PATH", str(Path(__file__).resolve().parent / "logs" / "commands.jsonl")
 ))
@@ -365,14 +415,31 @@ class BaseServer(paramiko.ServerInterface):
             1
         )
 
-        sock.bind(("127.0.0.1", 2222))
+        sock.bind((HONEYPOT_HOST, HONEYPOT_PORT))
         sock.listen(100)
 
-        print("DEBUG: Listening on 127.0.0.1:2222", flush=True)
+        self._print_banner()
 
         try:
             while True:
                 client, addr = sock.accept()
+
+                # Refuse past the cap rather than queuing: a flood should bounce,
+                # not pile up threads and LLM calls.
+                global _active_sessions
+                with _session_count_lock:
+                    at_capacity = _active_sessions >= MAX_SESSIONS
+                    if not at_capacity:
+                        _active_sessions += 1
+
+                if at_capacity:
+                    logger.warning(
+                        "Refused %s: at capacity (%d/%d sessions)",
+                        addr[0], _active_sessions, MAX_SESSIONS,
+                    )
+                    client.close()
+                    continue
+
                 # Each connection owns its authentication, event, and shell state.
                 server = BaseServer()
                 try:
@@ -383,10 +450,31 @@ class BaseServer(paramiko.ServerInterface):
                         daemon=True,
                     ).start()
                 except Exception:
+                    with _session_count_lock:
+                        _active_sessions -= 1
                     client.close()
                     logger.exception("Failed to start SSH connection worker")
         finally:
             sock.close()
+
+    def _print_banner(self):
+        """Say where we are listening and, when exposed, how to connect."""
+        print(f"Honeypot listening on {HONEYPOT_HOST}:{HONEYPOT_PORT} "
+              f"(max {MAX_SESSIONS} concurrent sessions)", flush=True)
+
+        if HONEYPOT_HOST in ("127.0.0.1", "localhost"):
+            print("  LOOPBACK ONLY - other devices cannot connect.", flush=True)
+            print(f"  This machine:  ssh root@127.0.0.1 -p {HONEYPOT_PORT}", flush=True)
+            print("  To expose it:  HONEYPOT_HOST=0.0.0.0 python base_server.py",
+                  flush=True)
+            return
+
+        print("  EXPOSED on every network interface. Connect with:", flush=True)
+        for ip in _local_ips() or ["<this machine's IP>"]:
+            print(f"    ssh root@{ip} -p {HONEYPOT_PORT}", flush=True)
+        print("  Any password is accepted.", flush=True)
+        print("  Confirm the address above belongs to your own hotspot, NOT "
+              "campus or venue Wi-Fi.", flush=True)
 
     def handle_client(self, client, addr):
         self.session_id = str(uuid.uuid4())
@@ -394,6 +482,9 @@ class BaseServer(paramiko.ServerInterface):
         transport = None
         try:
             transport = paramiko.Transport(client)
+            # Detect peers that vanish without closing, so the session slot and
+            # its thread get released instead of leaking.
+            transport.set_keepalive(30)
             self._load_host_keys(transport)
             transport.start_server(server=self)
             channel = transport.accept(20)
@@ -412,6 +503,10 @@ class BaseServer(paramiko.ServerInterface):
                 transport.close()
             client.close()
             send_event(self.session_id, self.src_ip, "logout")
+
+            global _active_sessions
+            with _session_count_lock:
+                _active_sessions -= 1
 
 def clean_terminal_output(output):
     output = output.strip()

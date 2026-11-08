@@ -161,7 +161,8 @@ error that looks like a code bug. Check here first.
 Three terminals:
 
 ```bash
-# 1. Honeypot — listens on 127.0.0.1:2222
+# 1. Honeypot — listens on 127.0.0.1:2222 (this machine only).
+#    To let other devices connect, see "Letting someone else connect" below.
 source .venv/bin/activate
 python base_server.py
 
@@ -176,8 +177,82 @@ cd frontend && npm run dev
 Connect to the honeypot:
 
 ```bash
-ssh user@127.0.0.1 -p 2222        # password: password
+ssh root@127.0.0.1 -p 2222        # any username, any password
 ```
+
+---
+
+## Letting someone else connect (the demo)
+
+By default the honeypot binds `127.0.0.1`, so **only the machine running it can
+connect**. That's deliberate: it's the only safe default on a network you don't own.
+
+for multi machine put machines on a priv netwrok
+
+A phone hotspot is **your own network**. Nothing is on it but the devices you
+invited, so there's no policy to breach and no isolation to fight.
+
+### Setup
+
+1. Turn on your phone's hotspot with a strong password. A travel router
+   (GL.iNet or similar) is more reliable — phones sometimes drop the hotspot
+   when the screen locks. Bring a charger either way.
+2. Join it with the demo laptop **and** the judge's laptop.
+3. Start the honeypot exposed:
+
+   ```bash
+   HONEYPOT_HOST=0.0.0.0 MAX_SESSIONS=5 python base_server.py
+   ```
+
+4. Read the connect command out of the startup banner:
+
+   ```
+   Honeypot listening on 0.0.0.0:2222 (max 5 concurrent sessions)
+     EXPOSED on every network interface. Connect with:
+       ssh root@172.20.10.2 -p 2222
+     Any password is accepted.
+     Confirm the address above belongs to your own hotspot, NOT campus or venue Wi-Fi.
+   ```
+
+   **Check that address.** A hotspot gives you something like `172.20.10.x`
+   (iPhone) or `192.168.x.x`. If you see `10.84.x.x` you are still on UB
+   wireless — reconnect before continuing.
+
+5. Put that exact command on a card or slide for the judge. Any password works.
+
+### Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `HONEYPOT_HOST` | `127.0.0.1` | `0.0.0.0` exposes it to the network |
+| `HONEYPOT_PORT` | `2222` | Keep it above 1024 so it needn't run as root |
+| `MAX_SESSIONS` | `5` | Connections past this are refused, not queued |
+
+The collector API, the dashboard and the ML service all stay on `127.0.0.1`.
+**Only the honeypot port is ever reachable from the network.**
+
+### Test before judging
+
+- A teammate's laptop joins the hotspot and SSHes in successfully
+- Their session appears on the dashboard
+- `http://<your-ip>:8000` and `:5173` are **not** reachable from their laptop
+- `ssh <your-ip>` (port 22) fails — your real SSH server is off
+- The hotspot survives 10+ minutes without dropping
+
+### Kill switch
+
+`Ctrl-C` the honeypot. Nothing else is exposed, so that's the whole blast
+radius.
+
+### Other options, and why not
+
+- **Venue Wi-Fi** — policy problem plus client isolation. Covered above.
+- **ngrok / Cloudflare Tunnel** — technically works and needs no shared
+  network, but it publishes an any-password SSH service to the open internet.
+  Real scanners find that within minutes and will hammer an LLM you're paying
+  for. Avoid.
+
+---
 
 ### Command classification logs
 

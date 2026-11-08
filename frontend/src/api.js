@@ -21,3 +21,5 @@ export const getIocs = () => request('/iocs')
 
 /** GET /stats → headline numbers for the top bar and home page */
 export const getStats = () => request('/stats')
+
+
