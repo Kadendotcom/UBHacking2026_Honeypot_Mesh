@@ -4,6 +4,7 @@ import { getClusters, getIocs, getSession } from '@/api'
 import { catalogueId, formatDuration } from '@/lib/format'
 import { highlightIocs } from '@/lib/highlight'
 import Frame from '@/components/Frame'
+import PageLoader from '@/components/PageLoader'
 
 const SPEEDS = [1, 4, 16]
 
@@ -55,7 +56,7 @@ function Replay({ id }) {
   }, [time])
 
   if (error) return <p className="text-destructive">Lost signal: {error}</p>
-  if (!session) return <p className="text-muted-foreground">Decoding transmission…</p>
+  if (!session) return <PageLoader />
 
   const cluster = clusters.find((c) => c.id === session.cluster_id)
   const sessionIocs = iocs.filter((i) => session.ioc_ids.includes(i.id))

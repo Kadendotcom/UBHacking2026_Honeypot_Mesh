@@ -5,6 +5,7 @@ import { catalogueId, formatDuration, timeAgo } from '@/lib/format'
 import BlackHole from '@/components/BlackHole'
 import StarSymbol from '@/components/StarSymbol'
 import Frame from '@/components/Frame'
+import PageLoader from '@/components/PageLoader'
 
 export default function Horizon() {
   const [data, setData] = useState(null)
@@ -17,7 +18,7 @@ export default function Horizon() {
   }, [])
 
   if (error) return <p className="text-destructive">Lost signal: {error}</p>
-  if (!data) return <p className="text-muted-foreground">Approaching the horizon…</p>
+  if (!data) return <PageLoader />
 
   const { sessions, clusters, iocs, stats } = data
   const dilation = Math.round(stats.avg_engaged_s / stats.baseline_avg_s)

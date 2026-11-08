@@ -156,8 +156,34 @@
   transform: scale(1.3);
 }
 
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--background);
+}
+.page-loader__icon {
+  position: relative;
+  width: min(80vw, 22rem);
+  aspect-ratio: 1;
+}
+.page-loader__icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.page-loader__rotating {
+  animation: page-loader-spin 2s linear infinite;
+}
+@keyframes page-loader-spin {
+  to { transform: rotate(360deg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .star-pulse { animation: none; opacity: 0.6; }
   .star-marker:hover .star-active { animation: none; }
+  .page-loader__rotating { animation: none; }
 }

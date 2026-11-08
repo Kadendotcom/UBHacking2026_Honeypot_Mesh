@@ -5,6 +5,7 @@ import { formatDuration } from '@/lib/format'
 import { WIDTH, HEIGHT, makeScale, starRadius, constellationLines, centroid } from '@/lib/starchart'
 import StarSymbol, { CATEGORIES } from '@/components/StarSymbol'
 import Frame from '@/components/Frame'
+import PageLoader from '@/components/PageLoader'
 
 export default function StarChart() {
   const [sessions, setSessions] = useState(null)
@@ -23,7 +24,7 @@ export default function StarChart() {
   }, [])
 
   if (error) return <p className="text-destructive">Lost signal: {error}</p>
-  if (!sessions || !clusters) return <p className="text-muted-foreground">Charting the sky…</p>
+  if (!sessions || !clusters) return <PageLoader />
 
   const scale = makeScale(sessions)
   const categoryOf = (clusterId) => clusters.find((c) => c.id === clusterId)?.category ?? 'unknown'

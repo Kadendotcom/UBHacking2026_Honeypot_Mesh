@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { getClusters, getSessions } from '@/api'
 import { catalogueId, formatDuration, timeAgo } from '@/lib/format'
 import Frame from '@/components/Frame'
+import PageLoader from '@/components/PageLoader'
 
 export default function Transmissions() {
   const [sessions, setSessions] = useState(null)
@@ -22,7 +23,7 @@ export default function Transmissions() {
   }, [])
 
   if (error) return <p className="text-destructive">Lost signal: {error}</p>
-  if (!sessions) return <p className="text-muted-foreground">Tuning in…</p>
+  if (!sessions) return <PageLoader />
 
   const clusterName = (id) => clusters.find((c) => c.id === id)?.name
 
