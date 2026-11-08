@@ -4,8 +4,9 @@
 import logging
 import socket
 import threading
-
+from model_inference import generate_response
 import paramiko
+from fake_session import FakeSession
 
 # SSH host keys
 HOSTKEY_RSA = paramiko.RSAKey(filename="keys/server_rsa")
@@ -22,6 +23,32 @@ class BaseServer(paramiko.ServerInterface):
 
     def __init__(self):
         self.event = threading.Event()
+        self.responses = {
+            "whoami": "root",
+            "pwd": "/root",
+            "hostname": "ubuntu",
+            "ls": "secrets.txt  documents  downloads",
+            "uname": "Linux",
+            "id": "uid=0(root) gid=0(root) groups=0(root)",
+
+            "cat /etc/hostname": "ubuntu",
+
+            "cat /etc/os-release": (
+                'PRETTY_NAME="Ubuntu 22.04.3 LTS"\n'
+                'NAME="Ubuntu"\n'
+                'VERSION_ID="22.04"\n'
+                'ID=ubuntu'
+            ),
+
+            "sudo -l": (
+                "Matching Defaults entries for root on ubuntu:\n"
+                "    env_reset, mail_badpass\n\n"
+                "User root may run the following commands on ubuntu:\n"
+                "    (ALL : ALL) ALL"
+            ),
+
+            "cat secrets.txt": "FAKE_PASSWORD=example123",
+        }
 
     # Authentication
     def get_allowed_auths(self, username):
@@ -61,20 +88,116 @@ class BaseServer(paramiko.ServerInterface):
             transport.add_server_key(host_key)
 
     # Fake Linux terminal
+
+    def execute_fake_command(self, command, session=None):
+        command = command.strip()
+
+        if not command:
+            return ""
+
+        # First, check hardcoded responses
+        if command in self.responses:
+            print(f"HARDCODED: {command}", flush=True)
+            return self.responses[command]
+
+        # Otherwise, use your fine-tuned MLX model
+        try:
+            print(f"MLX COMMAND: {command}", flush=True)
+
+            context = session.snapshot() if session else None
+
+            output = generate_response(
+                command,
+                session_context=context
+            )
+
+            print(f"MLX OUTPUT: {output!r}", flush=True)
+
+            return str(output) if output is not None else ""
+
+        except Exception:
+            logger.exception("MLX inference failed")
+            return "bash: temporary system error"
+
     def handle_shell(self, channel):
+        session = FakeSession()
         print("DEBUG: Fake shell started", flush=True)
 
-        channel.send(b"Welcome to Ubuntu 22.04 LTS\r\n")
-        channel.send(b"root@ubuntu:~# ")
+        channel.sendall(b"Welcome to Ubuntu 22.04 LTS\r\n")
+        channel.sendall(b"root@ubuntu:~# ")
 
-        responses = {
+        buffer = ""
+        last_was_cr = False
+
+        while True:
+            data = channel.recv(1024)
+
+            if not data:
+                break
+
+            for char in data.decode("utf-8", errors="replace"):
+
+                # Avoid processing CRLF as two commands
+                if char == "\n" and last_was_cr:
+                    last_was_cr = False
+                    continue
+
+                last_was_cr = (char == "\r")
+
+                if char in ("\r", "\n"):
+                    command = buffer.strip()
+                    buffer = ""
+
+                    channel.sendall(b"\r\n")
+
+                    if command == "exit":
+                        channel.sendall(b"logout\r\n")
+                        return
+
+                    if command:
+                        print(f"COMMAND: {command}", flush=True)
+
+                        handled, output = session.execute(command)
+
+                        if not handled:
+                            output = self.execute_fake_command(command, session)
+
+                        # Normalize line endings
+                        output = output.replace("\r\n", "\n")
+                        output = output.replace("\r", "\n")
+                        output = output.replace("\n", "\r\n")
+
+                        if output:
+                            channel.sendall(
+                                (output + "\r\n").encode("utf-8")
+                            )
+
+                    channel.sendall(session.prompt().encode("utf-8"))
+
+                elif char in ("\x08", "\x7f"):
+                    if buffer:
+                        buffer = buffer[:-1]
+                        channel.sendall(b"\b \b")
+
+                elif char.isprintable():
+                    buffer += char
+                    channel.sendall(char.encode("utf-8"))
+
+
+        self.responses = {
             "whoami": "root",
             "pwd": "/root",
             "ls": "Documents Downloads secrets.txt",
             "uname -s": "Linux",
             "uname -a": "Linux ubuntu 5.15.0 x86_64 GNU/Linux",
         }
-        responses.update({
+        self.responses.update({
+            "sudo -l": (
+                "Matching Defaults entries for root on ubuntu:\n"
+                "    env_reset, mail_badpass\n\n"
+                "User root may run the following commands on ubuntu:\n"
+                "    (ALL : ALL) ALL"
+            ),
             "hostname": "ubuntu",
             "id": "uid=0(root) gid=0(root) groups=0(root)",
             "uname": "Linux",
@@ -99,7 +222,7 @@ class BaseServer(paramiko.ServerInterface):
         })
 
         buffer = ""
-
+       
         while True:
             data = channel.recv(1024)
 
@@ -121,16 +244,19 @@ class BaseServer(paramiko.ServerInterface):
                     if command:
                         print(f"COMMAND: {command}", flush=True)
 
-                        output = responses.get(
-                            command,
-                            f"bash: {command}: command not found"
-                        )
+                        output = self.execute_fake_command(command)
 
                         channel.send(
                             (output + "\r\n").encode("utf-8")
                         )
 
-                    channel.send(b"root@ubuntu:~# ")
+                    terminal_output = output.replace("\r\n", "\n")
+                    terminal_output = terminal_output.replace("\r", "\n")
+                    terminal_output = terminal_output.replace("\n", "\r\n")
+
+                    channel.sendall(
+                        (terminal_output + "\r\n").encode("utf-8")
+                    )
 
                 elif char in ("\x08", "\x7f"):
                     if buffer:
@@ -141,6 +267,7 @@ class BaseServer(paramiko.ServerInterface):
                     buffer += char
                     channel.send(char.encode("utf-8"))
 
+    
     # Start SSH server
     def listen(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -191,6 +318,21 @@ class BaseServer(paramiko.ServerInterface):
         finally:
             sock.close()
 
+def clean_terminal_output(output):
+    output = output.strip()
+
+    if output.startswith("```"):
+        lines = output.splitlines()
+
+        if lines and lines[0].startswith("```"):
+            lines.pop(0)
+
+        if lines and lines[-1].strip() == "```":
+            lines.pop()
+
+        output = "\n".join(lines)
+
+    return output
 
 if __name__ == "__main__":
     while True:
